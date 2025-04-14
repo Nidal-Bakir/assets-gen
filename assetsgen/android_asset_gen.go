@@ -1,49 +1,17 @@
 package assetsgen
 
-import (
-	"fmt"
-	"math"
-	"os"
-	"path/filepath"
-	"strings"
+import "math"
 
-	"github.com/anthonynsimon/bild/imgio"
-	"github.com/anthonynsimon/bild/transform"
-)
-
-func GenerateImageAsstesForAndroid(imagePath string, folderName AndroidFolderName) error {
-	img, err := imgio.Open(imagePath)
+func GenerateImageAsstesForAndroid(imagePath string, folderName androidFolderName) error {
+	imgInfo, err := genImageInfoForAndroid(imagePath, folderName, intentAsset)
 	if err != nil {
 		return err
 	}
 
-	enc, err := imageEncoderFromPath(imagePath)
-	if err != nil {
-		return err
-	}
+	imageBounds := imgInfo.img.Bounds()
+	androidScreenDpis := generateAndroidScreenDpis(imageBounds.Dx(), imageBounds.Dy())
 
-	imgName := filepath.Base(imagePath)
-	imageExt := filepath.Ext(imagePath)
-	imgNameWithoutExt := strings.ReplaceAll(imgName, imageExt, "")
-
-	imgInfo := imageInfo{
-		img:       img,
-		encoder:   enc,
-		imagePath: imagePath,
-		imageName: imgName,
-		imageExt:  imageExt,
-		genImageLocation: func(screenType string) (directory string, imageName string) {
-			dir := filepath.Join(
-				rootFolderName,
-				"android",
-				fmt.Sprint("asset", "-", imgNameWithoutExt),
-				fmt.Sprint(string(folderName), "-", screenType),
-			)
-			return dir, imgName
-		},
-	}
-
-	err = generateImageAsstesForAndroid(imgInfo, androidScreenDpis)
+	err = generateImageAsstes(imgInfo, androidScreenDpis)
 	if err != nil {
 		return err
 	}
@@ -51,29 +19,66 @@ func GenerateImageAsstesForAndroid(imagePath string, folderName AndroidFolderNam
 	return nil
 }
 
-func generateImageAsstesForAndroid(imgInfo imageInfo, dpis screenTypeSlice) error {
-	maxScaleFactor := dpis.maxScaleFactor()
-
-	imageBounds := imgInfo.img.Bounds().Max
-	baseW := float64(imageBounds.X) / maxScaleFactor
-	baseH := float64(imageBounds.Y) / maxScaleFactor
-
-	for _, dpi := range dpis {
-		w := math.Floor(baseW * dpi.scaleFactor)
-		h := math.Floor(baseH * dpi.scaleFactor)
-		resizedImg := transform.Resize(imgInfo.img, int(w), int(h), transform.Linear)
-
-		dir, name := imgInfo.genImageLocation(dpi.name)
-		err := os.MkdirAll(dir, os.ModePerm)
-		if err != nil {
-			return err
-		}
-
-		err = imgio.Save(filepath.Join(dir, name), resizedImg, imgInfo.encoder)
-		if err != nil {
-			return err
-		}
+// MDPI    - 1.0x
+// HDPI    - 1.5x
+// XHDPI   - 2.0x
+// XXHDPI  - 3.0x
+// XXXHDPI - 4.0x
+func generateAndroidScreenDpis(w, h int) []Asset {
+	androidScreenDpis := []Asset{
+		androidScreenDpiAsset{
+			dpiName:     "mdpi",
+			scaleFactor: 1.0,
+		},
+		androidScreenDpiAsset{
+			dpiName:     "hdpi",
+			scaleFactor: 1.5,
+		},
+		androidScreenDpiAsset{
+			dpiName:     "xhdpi",
+			scaleFactor: 2,
+		},
+		androidScreenDpiAsset{
+			dpiName:     "xxhdpi",
+			scaleFactor: 3,
+		},
+		androidScreenDpiAsset{
+			dpiName:     "xxxhdpi",
+			scaleFactor: 4,
+		},
 	}
 
-	return nil
+	var maxScaleFactor float64
+	for _, v := range androidScreenDpis {
+		screenDpi := v.(androidScreenDpiAsset)
+		maxScaleFactor = max(screenDpi.scaleFactor, maxScaleFactor)
+	}
+
+	baseW := float64(w) / maxScaleFactor
+	baseH := float64(h) / maxScaleFactor
+	for i, v := range androidScreenDpis {
+		screenDpi := v.(androidScreenDpiAsset)
+		screenDpi.baseW = int(math.Floor(baseW))
+		screenDpi.baseH = int(math.Floor(baseH))
+		androidScreenDpis[i] = screenDpi
+	}
+
+	return androidScreenDpis
+}
+
+type androidScreenDpiAsset struct {
+	dpiName     string
+	scaleFactor float64
+	baseW       int
+	baseH       int
+}
+
+func (a androidScreenDpiAsset) Name() string {
+	return a.dpiName
+}
+
+func (a androidScreenDpiAsset) CalcSize(_, _ int) (int, int) {
+	w := int(math.Floor(float64(a.baseW) * a.scaleFactor))
+	h := int(math.Floor(float64(a.baseH) * a.scaleFactor))
+	return w, h
 }
