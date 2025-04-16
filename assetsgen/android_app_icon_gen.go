@@ -1,11 +1,18 @@
 package assetsgen
 
-// MDPI    - 24px
-// HDPI    - 36px
-// XHDPI   - 48px
-// XXHDPI  - 72px
-// XXXHDPI - 96px
-var androidAppIconDpis = []Asset{
+import (
+	"os"
+	"path/filepath"
+
+	"github.com/anthonynsimon/bild/imgio"
+)
+
+// MDPI    - 108px
+// HDPI    - 162px
+// XHDPI   - 216px
+// XXHDPI  - 324px
+// XXXHDPI - 432px
+var androidAdaptiveAppIconDpisV26 = []Asset{
 	androidAppIconDpiAsset{
 		dpiName: "mdpi",
 		width:   108,
@@ -33,18 +40,62 @@ var androidAppIconDpis = []Asset{
 	},
 }
 
+// MDPI    - 48px
+// HDPI    - 72px
+// XHDPI   - 96px
+// XXHDPI  - 144px
+// XXXHDPI - 192px
+var androidAppIconDpisLegacy = []Asset{
+	androidAppIconDpiAsset{
+		dpiName: "mdpi",
+		width:   48,
+		height:  48,
+	},
+	androidAppIconDpiAsset{
+		dpiName: "hdpi",
+		width:   72,
+		height:  72,
+	},
+	androidAppIconDpiAsset{
+		dpiName: "xhdpi",
+		width:   96,
+		height:  96,
+	},
+	androidAppIconDpiAsset{
+		dpiName: "xxhdpi",
+		width:   144,
+		height:  144,
+	},
+	androidAppIconDpiAsset{
+		dpiName: "xxxhdpi",
+		width:   192,
+		height:  192,
+	},
+}
+
 func GenerateAppIconForAndroid(imagePath string, folderName androidFolderName) error {
 	imgInfo, err := genImageInfoForAndroid(imagePath, folderName, intentAppIcon)
 	if err != nil {
 		return err
 	}
 
-	imgInfo.img = squareImageWithPadding(imgInfo.img)
-
-	err = generateImageAsstes(imgInfo, androidAppIconDpis)
+	dir, name := imgInfo.genImageLocation("anydpi-v26")
+	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return err
 	}
+
+	imgInfo.img = squareImageWithPadding(imgInfo.img, 0)
+
+	err = imgio.Save(filepath.Join(dir, name), imgInfo.img, imgInfo.encoder)
+	if err != nil {
+		return err
+	}
+
+	// err = generateImageAsstes(imgInfo, androidAppIconDpisLegacy)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

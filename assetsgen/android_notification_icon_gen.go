@@ -53,7 +53,7 @@ func GenerateNotificationIconForAndroid(imagePath string, folderName androidFold
 		return color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	})
 
-	imgInfo.img = squareImageWithPadding(imgInfo.img)
+	imgInfo.img = squareImageWithPadding(imgInfo.img, 0)
 
 	err = generateImageAsstes(imgInfo, androidNotificationIconDpis)
 	if err != nil {

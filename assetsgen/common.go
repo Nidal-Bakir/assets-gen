@@ -3,6 +3,7 @@ package assetsgen
 import (
 	"errors"
 	"image"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -95,25 +96,26 @@ func generateImageInfo(imagePath string, platform platformType, intent intention
 	return imgInfo, nil
 }
 
-func squareImageWithPadding(img image.Image) image.Image {
+func squareImageWithPadding(img image.Image, padding int) image.Image {
 	imageBounds := img.Bounds()
-	w := imageBounds.Dx()
-	h := imageBounds.Dy()
+	w := imageBounds.Dx() + padding
+	h := imageBounds.Dy() + padding
 
 	if w == h { // it's already a square
 		return img
 	}
 
 	// to center the image in the Square
-	var wOffset, hOffset int
-
+	wOffset := padding / 2
+	hOffset := padding / 2
 	if w < h {
-		w += (h - w)
-		wOffset = w / 3
+		wOffset += (h - w) / 2
 	} else {
-		h += (w - h)
-		hOffset = h / 3
+		hOffset += (w - h) / 2
 	}
+
+	w = int(math.Max(float64(w), float64(h)))
+	h = w
 
 	dst := image.NewRGBA(image.Rect(0, 0, w, h))
 
