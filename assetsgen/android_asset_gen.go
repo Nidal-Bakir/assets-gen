@@ -11,7 +11,7 @@ func GenerateImageAsstesForAndroid(imagePath string, folderName androidFolderNam
 	imageBounds := imgInfo.img.Bounds()
 	androidScreenDpis := generateAndroidScreenDpis(imageBounds.Dx(), imageBounds.Dy())
 
-	err = generateImageAsstes(imgInfo, androidScreenDpis)
+	err = imgInfo.save(androidScreenDpis)
 	if err != nil {
 		return err
 	}

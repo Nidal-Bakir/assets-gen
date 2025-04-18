@@ -14,7 +14,7 @@ const (
 )
 
 func genImageInfoForAndroid(imagePath string, folderName androidFolderName, intent intention) (imageInfo, error) {
-	return generateImageInfo(
+	return newImageInfo(
 		imagePath,
 		platformTypeAndroid,
 		intent,

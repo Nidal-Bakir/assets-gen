@@ -2,8 +2,6 @@ package assetsgen
 
 import (
 	"image/color"
-
-	"github.com/anthonynsimon/bild/adjust"
 )
 
 // MDPI    - 24px
@@ -45,17 +43,11 @@ func GenerateNotificationIconForAndroid(imagePath string, folderName androidFold
 		return err
 	}
 
-	// convert any non opaque pixel to the color white
-	imgInfo.img = adjust.Apply(imgInfo.img, func(pxColor color.RGBA) color.RGBA {
-		if pxColor.A == 0 {
-			return pxColor
-		}
-		return color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	})
+	err = imgInfo.
+		convertNoneOpaqueToColor(color.RGBA{R: 255, G: 255, B: 255, A: 255}).
+		squareImageWithPadding(0).
+		save(androidNotificationIconDpis)
 
-	imgInfo.img = squareImageWithPadding(imgInfo.img, 0)
-
-	err = generateImageAsstes(imgInfo, androidNotificationIconDpis)
 	if err != nil {
 		return err
 	}
