@@ -72,27 +72,6 @@ var androidAppIconDpisLegacy = []Asset{
 	},
 }
 
-func GenerateAppIconForAndroid(imagePath string, folderName androidFolderName, padding int) error {
-	imgInfo, err := genImageInfoForAndroid(imagePath, folderName, intentAppIcon)
-	if err != nil {
-		return err
-	}
-
-	imgInfo.squareImageWithPadding(padding)
-
-	err = generateLegacyAppIcon(imgInfo, androidAppIconDpisLegacy)
-	if err != nil {
-		return err
-	}
-
-	err = generateAdaptiveAppIcon(imgInfo, androidAdaptiveAppIconDpisV26)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 type androidAppIconDpiAsset struct {
 	dpiName string
 	width   int
@@ -107,12 +86,42 @@ func (a androidAppIconDpiAsset) CalcSize(_, _ int) (int, int) {
 	return a.width, a.height
 }
 
-func generateLegacyAppIcon(imgInfo imageInfo, androidAppIconDpisLegacy []Asset) error {
+type AppIconOptions struct {
+	RoundedCornerRadius int
+	BgColor             color.RGBA
+	FolderName          androidFolderName
+	Padding             int
+}
+
+func GenerateAppIconForAndroid(imagePath string, option AppIconOptions) error {
+	imgInfo, err := genImageInfoForAndroid(imagePath, option.FolderName, intentAppIcon)
+	if err != nil {
+		return err
+	}
+
+	imgInfo.squareImageWithPadding(option.Padding)
+
+	err = generateLegacyAppIcon(imgInfo, option.RoundedCornerRadius, option.BgColor, androidAppIconDpisLegacy)
+	if err != nil {
+		return err
+	}
+
+	err = generateAdaptiveAppIcon(imgInfo, androidAdaptiveAppIconDpisV26)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func generateLegacyAppIcon(imgInfo imageInfo, roundedCornerRadius int, bgColor color.RGBA, androidAppIconDpisLegacy []Asset) error {
 	err := imgInfo.
-		convertOpaqueToColor(color.RGBA{R: 255, G: 255, B: 255, A: 255}).
-		clipRRect(80).
-		padding(275).
-		save(androidAppIconDpisLegacy)
+		convertOpaqueToColor(bgColor).
+		clipRRect(roundedCornerRadius).
+		padding(275). // TODO: chedk this
+		splitPerAsset(androidAppIconDpisLegacy).
+		resizeForAssets().
+		save()
 
 	if err != nil {
 		return err

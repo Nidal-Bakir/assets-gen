@@ -13,19 +13,38 @@ import (
 	"github.com/anthonynsimon/bild/transform"
 )
 
-func imageEncoderFromPath(imagePath string) (imgio.Encoder, error) {
-	ext := filepath.Ext(imagePath)
-	switch ext {
-	case ".png":
-		return imgio.PNGEncoder(), nil
-	case ".jpeg", ".jpg":
-		return imgio.JPEGEncoder(100), nil
-	case ".bmp":
-		return imgio.BMPEncoder(), nil
+type imageInfo struct {
+	img              image.Image
+	imagePath        string
+	imageName        string
+	imageExt         string
+	encoder          imgio.Encoder
+	asset            Asset
+	genImageLocation func(screenType string) (directory string, imageName string)
+}
 
-	default:
-		return nil, ErrUnsupportedFileType
+type imageInfoSlice []imageInfo
+
+func (s *imageInfoSlice) forEeach(fn func(imageInfo) imageInfo) *imageInfoSlice {
+	for i, v := range *s {
+		(*s)[i] = fn(v)
 	}
+	return s
+}
+
+func (s *imageInfoSlice) resizeForAssets() *imageInfoSlice {
+	return s.forEeach(
+		func(imgInfo imageInfo) imageInfo {
+			return *imgInfo.resizeFroAsset()
+		},
+	)
+}
+
+func (s imageInfoSlice) save() error {
+	for _, v := range s {
+		v.save()
+	}
+	return nil
 }
 
 func newImageInfo(imagePath string, platform platformType, intent intention, lastFolderName func(screenType string) string) (imageInfo, error) {
@@ -64,13 +83,24 @@ func newImageInfo(imagePath string, platform platformType, intent intention, las
 	return imgInfo, nil
 }
 
-type imageInfo struct {
-	img              image.Image
-	imagePath        string
-	imageName        string
-	imageExt         string
-	encoder          imgio.Encoder
-	genImageLocation func(screenType string) (directory string, imageName string)
+func imageEncoderFromPath(imagePath string) (imgio.Encoder, error) {
+	ext := filepath.Ext(imagePath)
+	switch ext {
+	case ".png":
+		return imgio.PNGEncoder(), nil
+	case ".jpeg", ".jpg":
+		return imgio.JPEGEncoder(100), nil
+	case ".bmp":
+		return imgio.BMPEncoder(), nil
+
+	default:
+		return nil, ErrUnsupportedFileType
+	}
+}
+
+func (imgInfo *imageInfo) resize(w, h int) *imageInfo {
+	imgInfo.img = transform.Resize(imgInfo.img, w, h, transform.Linear)
+	return imgInfo
 }
 
 func (imgInfo *imageInfo) squareImageWithPadding(padding int) *imageInfo {
@@ -203,24 +233,37 @@ func isOnRoundedCorner(x, y, w, h, r int) bool {
 	return false
 }
 
-func (imgInfo *imageInfo) save(assets []Asset) error {
+func (imgInfo imageInfo) splitPerAsset(assets []Asset) *imageInfoSlice {
+	s := make(imageInfoSlice, len(assets))
+	for i, a := range assets {
+		s[i] = imgInfo
+		s[i].asset = a
+	}
+	return &s
+}
+
+// make sure to set the asset before calling this function,
+// it will panic if the asset is nil when it try to dereference
+// the asset object functions
+func (imgInfo *imageInfo) resizeFroAsset() *imageInfo {
 	imageBounds := imgInfo.img.Bounds()
+	w, h := imgInfo.asset.CalcSize(imageBounds.Dx(), imageBounds.Dy())
+	return imgInfo.resize(w, h)
+}
 
-	for _, asset := range assets {
-		w, h := asset.CalcSize(imageBounds.Dx(), imageBounds.Dy())
+// make sure to set the asset before calling this function,
+// it will panic if the asset is nil when it try to dereference
+// the asset object functions
+func (imgInfo imageInfo) save() error {
+	dir, name := imgInfo.genImageLocation(imgInfo.asset.Name())
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
 
-		resizedImg := transform.Resize(imgInfo.img, w, h, transform.Linear)
-
-		dir, name := imgInfo.genImageLocation(asset.Name())
-		err := os.MkdirAll(dir, os.ModePerm)
-		if err != nil {
-			return err
-		}
-
-		err = imgio.Save(filepath.Join(dir, name), resizedImg, imgInfo.encoder)
-		if err != nil {
-			return err
-		}
+	err = imgio.Save(filepath.Join(dir, name), imgInfo.img, imgInfo.encoder)
+	if err != nil {
+		return err
 	}
 
 	return nil

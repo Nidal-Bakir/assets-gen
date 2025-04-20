@@ -27,3 +27,4 @@ type Asset interface {
 	Name() string
 	CalcSize(w, h int) (int, int)
 }
+
