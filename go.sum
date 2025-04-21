@@ -1,4 +1,6 @@
 github.com/anthonynsimon/bild v0.14.0 h1:IFRkmKdNdqmexXHfEU7rPlAmdUZ8BDZEGtGHDnGWync=
 github.com/anthonynsimon/bild v0.14.0/go.mod h1:hcvEAyBjTW69qkKJTfpcDQ83sSZHxwOunsseDfeQhUs=
+github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
+github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 golang.org/x/image v0.18.0 h1:jGzIakQa/ZXI1I0Fxvaa9W7yP25TqT6cHIHn+6CqvSQ=
 golang.org/x/image v0.18.0/go.mod h1:4yyo5vMFQjVjUcVk4jEQcU9MGy/rulF5WvUILseCM2E=

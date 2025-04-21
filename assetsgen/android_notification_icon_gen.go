@@ -70,3 +70,7 @@ func (a androidNotificationIconDpiAsset) Name() string {
 func (a androidNotificationIconDpiAsset) CalcSize(_, _ int) (int, int) {
 	return a.width, a.height
 }
+
+func (a androidNotificationIconDpiAsset) CalcPadding(_, _ int) int {
+	return 0
+}

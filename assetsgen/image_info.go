@@ -3,24 +3,28 @@ package assetsgen
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/anthonynsimon/bild/adjust"
+	"github.com/anthonynsimon/bild/clone"
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/anthonynsimon/bild/transform"
 )
 
 type imageInfo struct {
-	img              image.Image
-	imagePath        string
-	imageName        string
-	imageExt         string
-	encoder          imgio.Encoder
-	asset            Asset
-	genImageLocation func(screenType string) (directory string, imageName string)
+	img               image.Image
+	imagePath         string
+	imageName         string
+	imgNameWithoutExt string
+	imageExt          string
+	encoder           imgio.Encoder
+	asset             Asset
+	genImageLocation  func(screenType, customImageName string) (directory string, imageName string)
 }
 
 type imageInfoSlice []imageInfo
@@ -35,7 +39,7 @@ func (s *imageInfoSlice) forEeach(fn func(imageInfo) imageInfo) *imageInfoSlice 
 func (s *imageInfoSlice) resizeForAssets() *imageInfoSlice {
 	return s.forEeach(
 		func(imgInfo imageInfo) imageInfo {
-			return *imgInfo.resizeFroAsset()
+			return *imgInfo.resizeThenPadForAsset()
 		},
 	)
 }
@@ -45,6 +49,14 @@ func (s imageInfoSlice) save() error {
 		v.save()
 	}
 	return nil
+}
+
+func (s *imageInfoSlice) setAssets(assets []Asset) *imageInfoSlice {
+	for i, v := range *s {
+		v.asset = assets[i]
+		(*s)[i] = v
+	}
+	return s
 }
 
 func newImageInfo(imagePath string, platform platformType, intent intention, lastFolderName func(screenType string) string) (imageInfo, error) {
@@ -63,12 +75,13 @@ func newImageInfo(imagePath string, platform platformType, intent intention, las
 	imgNameWithoutExt := strings.ReplaceAll(imgName, imageExt, "")
 
 	imgInfo := imageInfo{
-		img:       img,
-		encoder:   enc,
-		imagePath: imagePath,
-		imageName: imgName,
-		imageExt:  imageExt,
-		genImageLocation: func(screenType string) (directory string, imageName string) {
+		img:               img,
+		encoder:           enc,
+		imagePath:         imagePath,
+		imageName:         imgName,
+		imageExt:          imageExt,
+		imgNameWithoutExt: imgNameWithoutExt,
+		genImageLocation: func(screenType, cutomImageName string) (string, string) {
 			dir := filepath.Join(
 				rootFolderName,
 				string(platform),
@@ -76,7 +89,11 @@ func newImageInfo(imagePath string, platform platformType, intent intention, las
 				imgNameWithoutExt,
 				lastFolderName(screenType),
 			)
-			return dir, imgName
+			name := imgName
+			if len(cutomImageName) != 0 {
+				name = cutomImageName
+			}
+			return dir, name
 		},
 	}
 
@@ -104,21 +121,20 @@ func (imgInfo *imageInfo) resize(w, h int) *imageInfo {
 }
 
 func (imgInfo *imageInfo) squareImageWithPadding(padding int) *imageInfo {
-	imageBounds := imgInfo.img.Bounds()
-	w := imageBounds.Dx() + padding
-	h := imageBounds.Dy() + padding
+	imgBounds := imgInfo.img.Bounds()
+	w := imgBounds.Dx() + padding
+	h := imgBounds.Dy() + padding
 
 	if w == h { // it's already a square
 		return imgInfo
 	}
 
 	// to center the image in the Square
-	wOffset := padding / 2
-	hOffset := padding / 2
+	offset := image.Point{X: padding / 2, Y: padding / 2}
 	if w < h {
-		wOffset += (h - w) / 2
+		offset.X += (h - w) / 2
 	} else {
-		hOffset += (w - h) / 2
+		offset.Y += (w - h) / 2
 	}
 
 	w = int(math.Max(float64(w), float64(h)))
@@ -126,33 +142,20 @@ func (imgInfo *imageInfo) squareImageWithPadding(padding int) *imageInfo {
 
 	dst := image.NewRGBA(image.Rect(0, 0, w, h))
 
-	for y := range h - hOffset {
-		for x := range w - wOffset {
-			dst.Set(x+wOffset, y+hOffset, imgInfo.img.At(x, y))
-		}
-	}
+	src := imgInfo.img
+	srcBounds := src.Bounds()
+	draw.Draw(dst, srcBounds.Add(offset), src, srcBounds.Min, draw.Src)
 
 	imgInfo.img = dst
 	return imgInfo
 }
 
 func (imgInfo *imageInfo) padding(padding int) *imageInfo {
-	imageBounds := imgInfo.img.Bounds()
-	w := imageBounds.Dx() + padding
-	h := imageBounds.Dy() + padding
-
-	wOffset := padding / 2
-	hOffset := padding / 2
-
-	dst := image.NewRGBA(image.Rect(0, 0, w, h))
-
-	for y := range h - hOffset {
-		for x := range w - wOffset {
-			dst.Set(x+wOffset, y+hOffset, imgInfo.img.At(x, y))
-		}
+	if padding == 0 {
+		return imgInfo
 	}
 
-	imgInfo.img = dst
+	imgInfo.img = clone.Pad(imgInfo.img, padding, padding, clone.NoFill)
 	return imgInfo
 }
 
@@ -182,9 +185,9 @@ func (imgInfo *imageInfo) convertNoneOpaqueToColor(newColor color.RGBA) *imageIn
 }
 
 func (imgInfo *imageInfo) clipRRect(r int) *imageInfo {
-	imageBounds := imgInfo.img.Bounds()
-	w := imageBounds.Dx()
-	h := imageBounds.Dy()
+	imgBounds := imgInfo.img.Bounds()
+	w := imgBounds.Dx()
+	h := imgBounds.Dy()
 
 	dst := image.NewRGBA(image.Rect(0, 0, w, h))
 
@@ -242,20 +245,18 @@ func (imgInfo imageInfo) splitPerAsset(assets []Asset) *imageInfoSlice {
 	return &s
 }
 
-// make sure to set the asset before calling this function,
-// it will panic if the asset is nil when it try to dereference
-// the asset object functions
-func (imgInfo *imageInfo) resizeFroAsset() *imageInfo {
-	imageBounds := imgInfo.img.Bounds()
-	w, h := imgInfo.asset.CalcSize(imageBounds.Dx(), imageBounds.Dy())
-	return imgInfo.resize(w, h)
+func (imgInfo *imageInfo) resizeThenPadForAsset() *imageInfo {
+	imgBounds := imgInfo.img.Bounds()
+	w, h := imgInfo.asset.CalcSize(imgBounds.Dx(), imgBounds.Dy())
+	return imgInfo.resize(w, h).padding(imgInfo.asset.CalcPadding(w, h))
 }
 
-// make sure to set the asset before calling this function,
-// it will panic if the asset is nil when it try to dereference
-// the asset object functions
 func (imgInfo imageInfo) save() error {
-	dir, name := imgInfo.genImageLocation(imgInfo.asset.Name())
+	return imgInfo.saveWithCustomName("")
+}
+
+func (imgInfo imageInfo) saveWithCustomName(customImageName string) error {
+	dir, name := imgInfo.genImageLocation(imgInfo.asset.Name(), customImageName)
 	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return err
@@ -267,4 +268,58 @@ func (imgInfo imageInfo) save() error {
 	}
 
 	return nil
+}
+
+func (imgInfo *imageInfo) linearGradient(colorsTable GradientTable, degree float64) *imageInfo {
+	imgBounds := imgInfo.img.Bounds()
+	imgInfo.img = createLinearGradient(colorsTable, degree, imgBounds.Dx(), imgBounds.Dy())
+	return imgInfo
+}
+
+func (imgInfo *imageInfo) radialGradient(colorsTable GradientTable) *imageInfo {
+	imgBounds := imgInfo.img.Bounds()
+	imgInfo.img = createRadialGradient(colorsTable, imgBounds.Dx(), imgBounds.Dy())
+	return imgInfo
+}
+
+func (imgInfo imageInfo) copy() *imageInfo {
+	return &imageInfo{
+		img:               clone.AsRGBA(imgInfo.img),
+		imagePath:         imgInfo.imagePath,
+		imageName:         imgInfo.imageName,
+		imageExt:          imgInfo.imageExt,
+		imgNameWithoutExt: imgInfo.imgNameWithoutExt,
+		encoder:           imgInfo.encoder,
+		asset:             imgInfo.asset,
+		genImageLocation:  imgInfo.genImageLocation,
+	}
+}
+
+// All the imgs should be the same width and height
+//
+// layout the imgs on top of each other the last image will be laid out at last
+func (imgInfo *imageInfo) stack(images ...imageInfo) *imageInfo {
+	imgBounds := imgInfo.img.Bounds()
+	w := imgBounds.Dx()
+	h := imgBounds.Dy()
+	dst := image.NewRGBA(image.Rect(0, 0, w, h))
+
+	images = append([]imageInfo{*imgInfo}, images...)
+	slices.Reverse(images)
+
+	for y := range h {
+		for x := range w {
+			for _, img := range images {
+				c := img.img.At(x, y)
+				_, _, _, a := c.RGBA()
+				if a != 0 {
+					dst.Set(x, y, c)
+					break
+				}
+			}
+		}
+	}
+
+	imgInfo.img = dst
+	return imgInfo
 }

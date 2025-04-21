@@ -7,9 +7,8 @@ func GenerateImageAsstesForAndroid(imagePath string, folderName androidFolderNam
 	if err != nil {
 		return err
 	}
-
-	imageBounds := imgInfo.img.Bounds()
-	androidScreenDpis := generateAndroidScreenDpis(imageBounds.Dx(), imageBounds.Dy())
+	imgBounds := imgInfo.img.Bounds()
+	androidScreenDpis := generateAndroidScreenDpis(imgBounds.Dx(), imgBounds.Dy())
 
 	err = imgInfo.
 		splitPerAsset(androidScreenDpis).
@@ -84,4 +83,8 @@ func (a androidScreenDpiAsset) CalcSize(_, _ int) (int, int) {
 	w := int(math.Floor(float64(a.baseW) * a.scaleFactor))
 	h := int(math.Floor(float64(a.baseH) * a.scaleFactor))
 	return w, h
+}
+
+func (a androidScreenDpiAsset) CalcPadding(_, _ int) int {
+	return 0
 }
