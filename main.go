@@ -19,7 +19,7 @@ func MustParsHex(hex string) colorful.Color {
 func main() {
 	startTime := time.Now()
 
-	bgColor := assetsgen.GradientTable{
+	table := assetsgen.GradientTable{
 		{
 			MustParsHex("#262d4d"),
 			0.0,
@@ -35,9 +35,7 @@ func main() {
 		assetsgen.AppIconOptions{
 			FolderName:          assetsgen.AndroidFolderMipmap,
 			Padding:             0,
-			BgColor:             bgColor,
-			Degree:              0,
-			GradientType:        assetsgen.LinearGradient,
+			BgIcon:              assetsgen.NewLinearGradientBackground(table, 0),
 			RoundedCornerRadius: 100,
 		})
 

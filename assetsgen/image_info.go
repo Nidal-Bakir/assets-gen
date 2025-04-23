@@ -39,7 +39,15 @@ func (s *imageInfoSlice) forEeach(fn func(imageInfo) imageInfo) *imageInfoSlice 
 func (s *imageInfoSlice) resizeForAssets() *imageInfoSlice {
 	return s.forEeach(
 		func(imgInfo imageInfo) imageInfo {
-			return *imgInfo.resizeThenPadForAsset()
+			return *imgInfo.resizeForAsset()
+		},
+	)
+}
+
+func (s *imageInfoSlice) padForAsset() *imageInfoSlice {
+	return s.forEeach(
+		func(imgInfo imageInfo) imageInfo {
+			return *imgInfo.padForAsset()
 		},
 	)
 }
@@ -245,10 +253,16 @@ func (imgInfo imageInfo) splitPerAsset(assets []Asset) *imageInfoSlice {
 	return &s
 }
 
-func (imgInfo *imageInfo) resizeThenPadForAsset() *imageInfo {
+func (imgInfo *imageInfo) resizeForAsset() *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w, h := imgInfo.asset.CalcSize(imgBounds.Dx(), imgBounds.Dy())
 	return imgInfo.resize(w, h).padding(imgInfo.asset.CalcPadding(w, h))
+}
+
+func (imgInfo *imageInfo) padForAsset() *imageInfo {
+	imgBounds := imgInfo.img.Bounds()
+	w, h := imgInfo.asset.CalcSize(imgBounds.Dx(), imgBounds.Dy())
+	return imgInfo.padding(imgInfo.asset.CalcPadding(w, h))
 }
 
 func (imgInfo imageInfo) save() error {

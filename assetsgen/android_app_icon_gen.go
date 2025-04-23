@@ -6,6 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/anthonynsimon/bild/imgio"
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 // MDPI    - 108px
@@ -114,11 +117,87 @@ func (a androidAppIconDpiAsset) CalcPadding(_, _ int) int {
 	return a.padding
 }
 
+type backgroundIcon interface {
+	generateImgInfo(logo imageInfo) (imageInfo, error)
+}
+
+type gradientBackground struct {
+	table        GradientTable
+	degree       float64
+	gradientType GradientType
+}
+
+func (g gradientBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
+	bgImage := logo.copy()
+
+	switch g.gradientType {
+	case LinearGradient:
+		bgImage.linearGradient(g.table, g.degree)
+	case RadialGradient:
+		bgImage.radialGradient(g.table)
+	}
+
+	return *bgImage, nil
+}
+
+func NewLinearGradientBackground(table GradientTable, degree float64) backgroundIcon {
+	return gradientBackground{table: table, degree: degree, gradientType: LinearGradient}
+}
+
+func NewRadialGradientBackground(table GradientTable) backgroundIcon {
+	return gradientBackground{table: table, gradientType: RadialGradient}
+}
+
+type imageBackground struct {
+	imagePath string
+
+	// between [0..1] as percentage of the maximum axis (w,h) of the image;
+	padding float64
+}
+
+func (i imageBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
+	bgImage := logo.copy()
+	img, err := imgio.Open(i.imagePath)
+	if err != nil {
+		return imageInfo{}, err
+	}
+	bgImage.img = img
+
+	bounds := bgImage.img.Bounds()
+
+	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * i.padding
+	pad = math.Floor(pad)
+	bgImage.squareImageWithPadding(int(pad))
+
+	logoBounds := logo.img.Bounds()
+	bgImage.resize(logoBounds.Dx(), logoBounds.Dy())
+
+	return *bgImage, nil
+}
+
+// [padding] between [0..1] as percentage of the maximum axis (w,h) of the image
+func NewImageBackground(imagePath string, padding float64) backgroundIcon {
+	return imageBackground{imagePath: imagePath, padding: padding}
+}
+
+type solidColorBackground struct {
+	color colorful.Color
+}
+
+func (s solidColorBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
+	bgImage := logo.copy()
+	solidColorGradient := GradientTable{{Col: s.color, Pos: 1.0}}
+	bgImage.linearGradient(solidColorGradient, 0)
+	return *bgImage, nil
+}
+
+func NewSolidColorBackground(c colorful.Color) backgroundIcon {
+	return solidColorBackground{c}
+}
+
 type AppIconOptions struct {
 	RoundedCornerRadius int
-	BgColor             GradientTable
-	Degree              float64
-	GradientType        GradientType
+	BgIcon              backgroundIcon
 	FolderName          androidFolderName
 	// between [0..1] as percentage of the maximum axis (w,h) of the image
 	Padding float64
@@ -135,7 +214,10 @@ func GenerateAppIconForAndroid(imagePath string, option AppIconOptions) error {
 	pad = math.Floor(pad)
 	logoImage.squareImageWithPadding(int(pad))
 
-	bgImage := generateBackgroudAppImage(logoImage, option)
+	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
+	if err != nil {
+		return err
+	}
 
 	err = generateLegacyAppIcon(logoImage, bgImage, option.RoundedCornerRadius, androidAppIconDpisLegacy)
 	if err != nil {
@@ -148,19 +230,6 @@ func GenerateAppIconForAndroid(imagePath string, option AppIconOptions) error {
 	}
 
 	return nil
-}
-
-func generateBackgroudAppImage(logoImage imageInfo, option AppIconOptions) imageInfo {
-	bgImage := logoImage.copy()
-
-	switch option.GradientType {
-	case LinearGradient:
-		bgImage.linearGradient(option.BgColor, option.Degree)
-	case RadialGradient:
-		bgImage.radialGradient(option.BgColor)
-	}
-
-	return *bgImage
 }
 
 func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerRadius int, androidAppIconDpisLegacy []Asset) error {
@@ -188,6 +257,7 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 	logos := logoImage.
 		splitPerAsset(androidAdaptiveAppIconLogoDpisV26).
 		resizeForAssets().
+		padForAsset().
 		setAssets(androidAdaptiveAppIconLayerDpisV26).
 		resizeForAssets()
 
