@@ -30,13 +30,11 @@ func main() {
 		},
 	}
 
-	err := assetsgen.GenerateAppIconForAndroid(
+	err := assetsgen.GenerateAppIconForIos(
 		"./test_images/ic_launcher.png",
-		assetsgen.AppIconOptions{
-			FolderName:          assetsgen.AndroidFolderMipmap,
-			Padding:             0,
-			BgIcon:              assetsgen.NewLinearGradientBackground(table, 0),
-			RoundedCornerRadius: 100,
+		assetsgen.IosAppIconOptions{
+			Padding: 0.10,
+			BgIcon:  assetsgen.NewLinearGradientBackground(table, 0),
 		})
 
 	if err != nil {
