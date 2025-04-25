@@ -20,6 +20,7 @@ func main() {
 	startTime := time.Now()
 
 	table := assetsgen.GradientTable{
+
 		{
 			MustParsHex("#262d4d"),
 			0.0,
@@ -30,11 +31,13 @@ func main() {
 		},
 	}
 
-	err := assetsgen.GenerateAppIconForIos(
+	err := assetsgen.GenerateAppIconForAndroid(
 		"./test_images/ic_launcher.png",
-		assetsgen.IosAppIconOptions{
-			Padding: 0.10,
-			BgIcon:  assetsgen.NewLinearGradientBackground(table, 0),
+		assetsgen.AndroidAppIconOptions{
+			Padding:             0.10,
+			FolderName:          assetsgen.AndroidFolderMipmap,
+			RoundedCornerRadius: 100,
+			BgIcon:              assetsgen.NewRadialGradientBackground(table),
 		})
 
 	if err != nil {

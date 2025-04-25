@@ -35,7 +35,13 @@ func (gt GradientTable) GetInterpolatedColorFor(t float64) colorful.Color {
 		}
 	}
 
-	// Nothing found? Means we're at (or past) the last gradient keypoint.
+	// Nothing found:
+	//
+	// either we are before a key point, then use the first color
+	if t <= gt[0].Pos {
+		return gt[0].Col
+	}
+	// or we're at (or past) the last gradient keypoint.
 	return gt[len(gt)-1].Col
 }
 
@@ -81,5 +87,26 @@ func createLinearGradient(colorsTable GradientTable, degree float64, w, h int) i
 
 func createRadialGradient(colorsTable GradientTable, w, h int) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	center := image.Pt(w/2, h/2)
+	r := (math.Min(float64(w), float64(h))) / 2
+
+	// distance between two points: √( (x1-x2)^2 + (y1-y2)^2 )
+	distance := func(p1, p2 image.Point) float64 {
+		return math.Sqrt(math.Pow(float64(p2.X-p1.X), 2) + math.Pow(float64(p2.Y-p1.Y), 2))
+	}
+
+	for y := range h {
+		for x := range w {
+			distance := math.Abs(distance(center, image.Pt(x, y)))
+
+			// normalize into [0…1]
+			t := distance / r
+
+			// sample and paint
+			c := colorsTable.GetInterpolatedColorFor(t)
+			img.Set(x, y, c)
+		}
+	}
+
 	return img
 }

@@ -242,7 +242,6 @@ func generateIosAppIcon(logoImage imageInfo, bgImage imageInfo, iosAppIconDpis [
 }
 
 func generateContentsJson(logoImage imageInfo, dpis []Asset) error {
-
 	type GenInfo struct {
 		Author  string `json:"author"`
 		Version int    `json:"version"`
