@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 )
 
-func genIosAppIconDpis(ext string) []Asset {
-	var iosAppIconDpis = []Asset{
+func genIosAppIconDpis(ext string) []asset {
+	var iosAppIconDpis = []asset{
 		iosAppIconDpiAsset{
 			Filename: "AppIcon@2x",
 			Idiom:    "iphone",
@@ -225,7 +225,7 @@ func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
 	return nil
 }
 
-func generateIosAppIcon(logoImage imageInfo, bgImage imageInfo, iosAppIconDpis []Asset) error {
+func generateIosAppIcon(logoImage imageInfo, bgImage imageInfo, iosAppIconDpis []asset) error {
 	imgs := bgImage.
 		stack(logoImage).
 		splitPerAsset(iosAppIconDpis).
@@ -241,13 +241,13 @@ func generateIosAppIcon(logoImage imageInfo, bgImage imageInfo, iosAppIconDpis [
 	return nil
 }
 
-func generateContentsJson(logoImage imageInfo, dpis []Asset) error {
+func generateContentsJson(logoImage imageInfo, dpis []asset) error {
 	type GenInfo struct {
 		Author  string `json:"author"`
 		Version int    `json:"version"`
 	}
 	type output struct {
-		Images []Asset `json:"images"`
+		Images []asset `json:"images"`
 		Info   GenInfo `json:"info"`
 	}
 

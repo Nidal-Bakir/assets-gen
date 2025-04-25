@@ -13,7 +13,7 @@ import (
 // XHDPI   - 216px
 // XXHDPI  - 324px
 // XXXHDPI - 432px
-var androidAdaptiveAppIconLayerDpisV26 = []Asset{
+var androidAdaptiveAppIconLayerDpisV26 = []asset{
 	androidAppIconDpiAsset{
 		dpiName: "mdpi",
 		size:    108,
@@ -41,7 +41,7 @@ var androidAdaptiveAppIconLayerDpisV26 = []Asset{
 // XHDPI   - 132px
 // XXHDPI  - 198px
 // XXXHDPI - 264px
-var androidAdaptiveAppIconLogoDpisV26 = []Asset{
+var androidAdaptiveAppIconLogoDpisV26 = []asset{
 	androidAppIconDpiAsset{
 		dpiName: "mdpi",
 		size:    66,
@@ -74,7 +74,7 @@ var androidAdaptiveAppIconLogoDpisV26 = []Asset{
 // XHDPI   - 96px
 // XXHDPI  - 144px
 // XXXHDPI - 192px
-var androidAppIconDpisLegacy = []Asset{
+var androidAppIconDpisLegacy = []asset{
 	androidAppIconDpiAsset{
 		dpiName: "mdpi",
 		size:    48,
@@ -151,7 +151,7 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 	return nil
 }
 
-func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerRadius int, androidAppIconDpisLegacy []Asset) error {
+func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerRadius int, androidAppIconDpisLegacy []asset) error {
 	err := bgImage.
 		stack(logoImage).
 		clipRRect(roundedCornerRadius).
@@ -167,7 +167,7 @@ func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCorner
 	return nil
 }
 
-func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdaptiveAppIconLayerDpisV26 []Asset, androidAdaptiveAppIconLogoDpisV26 []Asset) error {
+func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdaptiveAppIconLayerDpisV26 []asset, androidAdaptiveAppIconLogoDpisV26 []asset) error {
 	err := generateIcLauncherXml(logoImage)
 	if err != nil {
 		return err

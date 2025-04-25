@@ -9,7 +9,7 @@ import (
 // XHDPI   - 48px
 // XXHDPI  - 72px
 // XXXHDPI - 96px
-var androidNotificationIconDpis = []Asset{
+var androidNotificationIconDpis = []asset{
 	androidNotificationIconDpiAsset{
 		dpiName: "mdpi",
 		width:   24,

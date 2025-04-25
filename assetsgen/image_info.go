@@ -23,7 +23,7 @@ type imageInfo struct {
 	imgNameWithoutExt string
 	imageExt          string
 	encoder           imgio.Encoder
-	asset             Asset
+	asset             asset
 	genImageLocation  func(screenType, customImageName string) (directory string, imageName string)
 }
 
@@ -59,7 +59,7 @@ func (s imageInfoSlice) save() error {
 	return nil
 }
 
-func (s *imageInfoSlice) setAssets(assets []Asset) *imageInfoSlice {
+func (s *imageInfoSlice) setAssets(assets []asset) *imageInfoSlice {
 	for i, v := range *s {
 		v.asset = assets[i]
 		(*s)[i] = v
@@ -174,15 +174,6 @@ func (imgInfo *imageInfo) convertColors(fn func(color.RGBA) color.RGBA) *imageIn
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) convertOpaqueToColor(newColor color.RGBA) *imageInfo {
-	return imgInfo.convertColors(func(pxColor color.RGBA) color.RGBA {
-		if pxColor.A == 0 {
-			return newColor
-		}
-		return pxColor
-	})
-}
-
 func (imgInfo *imageInfo) convertNoneOpaqueToColor(newColor color.RGBA) *imageInfo {
 	return imgInfo.convertColors(func(pxColor color.RGBA) color.RGBA {
 		if pxColor.A == 0 {
@@ -244,7 +235,7 @@ func isOnRoundedCorner(x, y, w, h, r int) bool {
 	return false
 }
 
-func (imgInfo imageInfo) splitPerAsset(assets []Asset) *imageInfoSlice {
+func (imgInfo imageInfo) splitPerAsset(assets []asset) *imageInfoSlice {
 	s := make(imageInfoSlice, len(assets))
 	for i, a := range assets {
 		s[i] = imgInfo

@@ -26,8 +26,8 @@ func GenerateImageAsstesForAndroid(imagePath string, folderName androidFolderNam
 // XHDPI   - 2.0x
 // XXHDPI  - 3.0x
 // XXXHDPI - 4.0x
-func generateAndroidScreenDpis(w, h int) []Asset {
-	androidScreenDpis := []Asset{
+func generateAndroidScreenDpis(w, h int) []asset {
+	androidScreenDpis := []asset{
 		androidScreenDpiAsset{
 			dpiName:     "mdpi",
 			scaleFactor: 1.0,

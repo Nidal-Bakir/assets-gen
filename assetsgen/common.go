@@ -29,7 +29,7 @@ const (
 	intentAsset            intention = "asset"
 )
 
-type Asset interface {
+type asset interface {
 	Name() string
 	CalcSize(w, h int) (int, int)
 	CalcPadding(w, h int) int
