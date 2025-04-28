@@ -2,7 +2,7 @@ package assetsgen
 
 import (
 	"errors"
-	"math"
+	"os"
 
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/lucasb-eyer/go-colorful"
@@ -10,6 +10,7 @@ import (
 
 var (
 	ErrUnsupportedFileType = errors.New("unsupported file type")
+	ErrFileNotFound        = errors.New("file not found")
 )
 
 type platformType string
@@ -35,7 +36,7 @@ type asset interface {
 	CalcPadding(w, h int) int
 }
 
-type backgroundIcon interface {
+type BackgroundIcon interface {
 	generateImgInfo(logo imageInfo) (imageInfo, error)
 }
 
@@ -58,19 +59,16 @@ func (g gradientBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
 	return *bgImage, nil
 }
 
-func NewLinearGradientBackground(table GradientTable, degree float64) backgroundIcon {
+func NewLinearGradientBackground(table GradientTable, degree float64) BackgroundIcon {
 	return gradientBackground{table: table, degree: degree, gradientType: LinearGradient}
 }
 
-func NewRadialGradientBackground(table GradientTable) backgroundIcon {
+func NewRadialGradientBackground(table GradientTable) BackgroundIcon {
 	return gradientBackground{table: table, gradientType: RadialGradient}
 }
 
 type imageBackground struct {
 	imagePath string
-
-	// between [0..1] as percentage of the maximum axis (w,h) of the image;
-	padding float64
 }
 
 func (i imageBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
@@ -81,21 +79,17 @@ func (i imageBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
 	}
 	bgImage.img = img
 
-	bounds := bgImage.img.Bounds()
-
-	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * i.padding
-	pad = math.Floor(pad)
-	bgImage.squareImageWithPadding(int(pad))
-
 	logoBounds := logo.img.Bounds()
-	bgImage.resize(logoBounds.Dx(), logoBounds.Dy())
+	
+	bgImage.squareImageWithPadding(0).
+		resize(logoBounds.Dx(), logoBounds.Dy())
 
 	return *bgImage, nil
 }
 
 // [padding] between [0..1] as percentage of the maximum axis (w,h) of the image
-func NewImageBackground(imagePath string, padding float64) backgroundIcon {
-	return imageBackground{imagePath: imagePath, padding: padding}
+func NewImageBackground(imagePath string) BackgroundIcon {
+	return imageBackground{imagePath: imagePath}
 }
 
 type solidColorBackground struct {
@@ -109,6 +103,17 @@ func (s solidColorBackground) generateImgInfo(logo imageInfo) (imageInfo, error)
 	return *bgImage, nil
 }
 
-func NewSolidColorBackground(c colorful.Color) backgroundIcon {
+func NewSolidColorBackground(c colorful.Color) BackgroundIcon {
 	return solidColorBackground{c}
+}
+
+func IsFileExists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false
+		}
+		panic(err)
+	}
+	return true
 }

@@ -1,48 +1,44 @@
 package main
 
 import (
-	"fmt"
-	"time"
+	"context"
+	"log"
+	"os"
+	"strings"
 
-	"github.com/Nidal-Bakir/assets-gen/assetsgen"
-	"github.com/lucasb-eyer/go-colorful"
+	"github.com/Nidal-Bakir/assets-gen/cmd/cli/cmd"
+	"github.com/urfave/cli/v3"
 )
 
-func MustParsHex(hex string) colorful.Color {
-	c, err := colorful.Hex(hex)
-	if err != nil {
-		panic(err)
-	}
-	return c
+var cmdErrors = []error{
+	cmd.ErrInvalidBgType,
+	cmd.ErrInvalidAndroidFolder,
+	cmd.ErrNigativeValueCorners,
+	cmd.ErrPaddingOutOfRange,
+	cmd.ErrInvalidColor,
 }
 
 func main() {
-	startTime := time.Now()
-
-	table := assetsgen.GradientTable{
-
-		{
-			MustParsHex("#262d4d"),
-			0.0,
-		},
-		{
-			MustParsHex("#7BD9EF"),
-			1.0,
+	cmd := &cli.Command{
+		Commands: []*cli.Command{
+			cmd.AndroidAppIcon(),
+			cmd.AndroidNotificationIcon(),
+			cmd.AndroidAssetGen(),
+			cmd.IosAppIcon(),
 		},
 	}
 
-	err := assetsgen.GenerateAppIconForAndroid(
-		"./test_images/ic_launcher.png",
-		assetsgen.AndroidAppIconOptions{
-			Padding:             0.10,
-			FolderName:          assetsgen.AndroidFolderMipmap,
-			RoundedCornerRadius: 100,
-			BgIcon:              assetsgen.NewRadialGradientBackground(table),
-		})
-
-	if err != nil {
-		panic(err)
+	err := cmd.Run(context.Background(), os.Args)
+	if err != nil && !isCmdDefinedError(err) {
+		log.Fatal(err)
 	}
+}
 
-	fmt.Printf("took %.1f seconds\n", time.Since(startTime).Seconds())
+func isCmdDefinedError(err error) bool {
+	for _, e := range cmdErrors {
+		if strings.Contains(err.Error(), e.Error()) {
+			return true
+		}
+	}
+	return false
 }

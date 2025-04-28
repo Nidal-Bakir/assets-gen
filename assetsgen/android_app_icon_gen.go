@@ -110,19 +110,20 @@ func (a androidAppIconDpiAsset) Name() string {
 func (a androidAppIconDpiAsset) CalcSize(_, _ int) (int, int) {
 	return a.size, a.size
 }
+
 func (a androidAppIconDpiAsset) CalcPadding(_, _ int) int {
 	return a.padding
 }
 
 type AndroidAppIconOptions struct {
 	RoundedCornerRadius int
-	BgIcon              backgroundIcon
-	FolderName          androidFolderName
+	BgIcon              BackgroundIcon
+	FolderName          AndroidFolderName
 	// between [0..1] as percentage of the maximum axis (w,h) of the image
 	Padding float64
 }
 
-func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) error {
+func GenerateAppIconForAndroid(imagePath string, outputFileName string, option AndroidAppIconOptions) error {
 	logoImage, err := genImageInfoForAndroid(imagePath, option.FolderName, intentAppIcon)
 	if err != nil {
 		return err
@@ -138,12 +139,12 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 		return err
 	}
 
-	err = generateLegacyAppIcon(logoImage, bgImage, option.RoundedCornerRadius, androidAppIconDpisLegacy)
+	err = generateLegacyAppIcon(logoImage, bgImage, option.RoundedCornerRadius, androidAppIconDpisLegacy, outputFileName)
 	if err != nil {
 		return err
 	}
 
-	err = generateAdaptiveAppIcon(logoImage, bgImage, androidAdaptiveAppIconLayerDpisV26, androidAdaptiveAppIconLogoDpisV26)
+	err = generateAdaptiveAppIcon(logoImage, bgImage, androidAdaptiveAppIconLayerDpisV26, androidAdaptiveAppIconLogoDpisV26, outputFileName)
 	if err != nil {
 		return err
 	}
@@ -151,14 +152,18 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 	return nil
 }
 
-func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerRadius int, androidAppIconDpisLegacy []asset) error {
+func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerRadius int, androidAppIconDpisLegacy []asset, outputFileName string) error {
+	if len(outputFileName) != 0 {
+		outputFileName = fmt.Sprint(outputFileName, logoImage.imageExt)
+	}
+
 	err := bgImage.
 		stack(logoImage).
 		clipRRect(roundedCornerRadius).
 		padding(150). // TODO: check this value
 		splitPerAsset(androidAppIconDpisLegacy).
 		resizeForAssets().
-		save()
+		saveWithCustomName(outputFileName)
 
 	if err != nil {
 		return err
@@ -167,8 +172,8 @@ func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCorner
 	return nil
 }
 
-func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdaptiveAppIconLayerDpisV26 []asset, androidAdaptiveAppIconLogoDpisV26 []asset) error {
-	err := generateIcLauncherXml(logoImage)
+func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdaptiveAppIconLayerDpisV26 []asset, androidAdaptiveAppIconLogoDpisV26 []asset, outputFileName string) error {
+	err := generateIcLauncherXml(logoImage, outputFileName)
 	if err != nil {
 		return err
 	}
@@ -180,13 +185,23 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 		setAssets(androidAdaptiveAppIconLayerDpisV26).
 		resizeForAssets()
 
+	shouldUseAssetName := len(outputFileName) == 0
+	foregroundName := fmt.Sprint(outputFileName, "_foreground", logoImage.imageExt)
+	monochromeName := fmt.Sprint(outputFileName, "_monochrome", logoImage.imageExt)
+	backgroundName := fmt.Sprint(outputFileName, "_background", logoImage.imageExt)
+
 	for _, logo := range *logos {
-		err := logo.saveWithCustomName(fmt.Sprint(logo.imgNameWithoutExt, "_foreground", logo.imageExt))
+		if shouldUseAssetName {
+			foregroundName = fmt.Sprint(logo.imgNameWithoutExt, "_foreground", logoImage.imageExt)
+			monochromeName = fmt.Sprint(logo.imgNameWithoutExt, "_monochrome", logoImage.imageExt)
+		}
+
+		err := logo.saveWithCustomName(foregroundName)
 		if err != nil {
 			return err
 		}
 
-		err = logo.saveWithCustomName(fmt.Sprint(logo.imgNameWithoutExt, "_monochrome", logo.imageExt))
+		err = logo.saveWithCustomName(monochromeName)
 		if err != nil {
 			return err
 		}
@@ -197,7 +212,10 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 		resizeForAssets()
 
 	for _, bg := range *bgs {
-		err := bg.saveWithCustomName(fmt.Sprint(bg.imgNameWithoutExt, "_background", bg.imageExt))
+		if shouldUseAssetName {
+			backgroundName = fmt.Sprint(bg.imgNameWithoutExt, "_background", bg.imageExt)
+		}
+		err := bg.saveWithCustomName(backgroundName)
 		if err != nil {
 			return err
 		}
@@ -206,10 +224,15 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 	return nil
 }
 
-func generateIcLauncherXml(logoImage imageInfo) error {
+func generateIcLauncherXml(logoImage imageInfo, outputFileName string) error {
 	sb := strings.Builder{}
 
-	name := logoImage.imgNameWithoutExt
+	var name string
+	if len(outputFileName) == 0 {
+		name = logoImage.imgNameWithoutExt
+	} else {
+		name = outputFileName
+	}
 
 	sb.WriteString(`<?xml version="1.0" encoding="utf-8" ?>`)
 	sb.WriteRune('\n')

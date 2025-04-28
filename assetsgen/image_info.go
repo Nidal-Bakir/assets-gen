@@ -58,6 +58,12 @@ func (s imageInfoSlice) save() error {
 	}
 	return nil
 }
+func (s imageInfoSlice) saveWithCustomName(customImageName string) error {
+	for _, v := range s {
+		v.saveWithCustomName(customImageName)
+	}
+	return nil
+}
 
 func (s *imageInfoSlice) setAssets(assets []asset) *imageInfoSlice {
 	for i, v := range *s {
@@ -68,6 +74,10 @@ func (s *imageInfoSlice) setAssets(assets []asset) *imageInfoSlice {
 }
 
 func newImageInfo(imagePath string, platform platformType, intent intention, lastFolderName func(screenType string) string) (imageInfo, error) {
+	if !IsFileExists(imagePath) {
+		return imageInfo{}, ErrFileNotFound
+	}
+
 	img, err := imgio.Open(imagePath)
 	if err != nil {
 		return imageInfo{}, err

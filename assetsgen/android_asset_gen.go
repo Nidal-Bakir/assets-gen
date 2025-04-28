@@ -2,7 +2,7 @@ package assetsgen
 
 import "math"
 
-func GenerateImageAsstesForAndroid(imagePath string, folderName androidFolderName) error {
+func GenerateImageAsstesForAndroid(imagePath string, folderName AndroidFolderName) error {
 	imgInfo, err := genImageInfoForAndroid(imagePath, folderName, intentAsset)
 	if err != nil {
 		return err

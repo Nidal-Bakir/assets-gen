@@ -4,14 +4,14 @@ import (
 	"fmt"
 )
 
-type androidFolderName string
+type AndroidFolderName string
 
 const (
-	AndroidFolderMipmap   androidFolderName = "mipmap"
-	AndroidFolderDrawable androidFolderName = "drawable"
+	AndroidFolderMipmap   AndroidFolderName = "mipmap"
+	AndroidFolderDrawable AndroidFolderName = "drawable"
 )
 
-func genImageInfoForAndroid(imagePath string, folderName androidFolderName, intent intention) (imageInfo, error) {
+func genImageInfoForAndroid(imagePath string, folderName AndroidFolderName, intent intention) (imageInfo, error) {
 	return newImageInfo(
 		imagePath,
 		platformTypeAndroid,

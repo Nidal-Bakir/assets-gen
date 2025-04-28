@@ -1,6 +1,7 @@
 package assetsgen
 
 import (
+	"fmt"
 	"image/color"
 )
 
@@ -37,10 +38,14 @@ var androidNotificationIconDpis = []asset{
 	},
 }
 
-func GenerateNotificationIconForAndroid(imagePath string, folderName androidFolderName) error {
+func GenerateNotificationIconForAndroid(imagePath string, folderName AndroidFolderName, outputFileName string) error {
 	imgInfo, err := genImageInfoForAndroid(imagePath, folderName, intentNotificationIcon)
 	if err != nil {
 		return err
+	}
+
+	if len(outputFileName) != 0 {
+		outputFileName = fmt.Sprint(outputFileName, imgInfo.imageExt)
 	}
 
 	err = imgInfo.
@@ -48,7 +53,7 @@ func GenerateNotificationIconForAndroid(imagePath string, folderName androidFold
 		squareImageWithPadding(0).
 		splitPerAsset(androidNotificationIconDpis).
 		resizeForAssets().
-		save()
+		saveWithCustomName(outputFileName)
 
 	if err != nil {
 		return err

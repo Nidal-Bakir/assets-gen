@@ -188,7 +188,7 @@ func (a iosAppIconDpiAsset) CalcPadding(_, _ int) int {
 }
 
 type IosAppIconOptions struct {
-	BgIcon backgroundIcon
+	BgIcon BackgroundIcon
 
 	// between [0..1] as percentage of the maximum axis (w,h) of the image
 	Padding float64
