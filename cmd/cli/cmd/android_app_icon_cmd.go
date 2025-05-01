@@ -12,24 +12,26 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+var bgTypes = []string{"solid-color", "linear-gradien", "radial-gradient", "image"}
+
 func AndroidAppIcon() *cli.Command {
 	var imagePath string
 	var outputName string
-	var roundedCornerRadius int
+	var roundedCornerPercentRadius float64
 
 	var bgType string
 	var bgImagePath string
 	var linearGradientDegree int
 	var solidColor = colorful.Color{R: 1, G: 1, B: 1}
-	var gradientColors = make([]colorful.Color, 0, 0)
-	var gradientStops = make([]float64, 0, 0)
+	var gradientColors = []colorful.Color{colorful.Color{R: 1, G: 1, B: 1}, colorful.Color{R: 0, G: 0, B: 0}}
+	var gradientStops = []float64{0.0, 1.0}
 
 	var padding float64
 	var folderName = assetsgen.AndroidFolderMipmap
 
 	imageArg := imageArg(&imagePath)
 
-	cornerRadiusFlag := cornerRadiusFlagFn(&roundedCornerRadius)
+	cornerRadiusFlag := cornerRadiusFlagFn(&roundedCornerPercentRadius)
 	folderNameFlag := androidFolderFlag(&folderName)
 	paddingFlag := paddingFlagFn(&padding)
 	outputNameFlag := outputNameFlagFn(&outputName)
@@ -41,34 +43,25 @@ func AndroidAppIcon() *cli.Command {
 	imageBgFlag := imageBgFlagFn(&bgImagePath)
 
 	action := func(ctx context.Context, c *cli.Command) error {
-		if !assetsgen.IsFileExists(imagePath) {
-			return ErrFileNotFound
+		if err := assetsgen.IsFileExistsAndImage(imagePath); err != nil {
+			return err
 		}
 
-		fmt.Println("imagePath:", imagePath)
-		fmt.Println("outputName:", outputName)
-		fmt.Println("roundedCornerRadius:", roundedCornerRadius)
-		fmt.Println("folderName:", folderName)
-		fmt.Println("padding:", padding)
-		fmt.Println("bgType:", bgType)
-		fmt.Println("bgImagePath:", bgImagePath)
-		fmt.Println("linearGradientDegree:", linearGradientDegree)
-		fmt.Println("solidColor:", solidColor)
-		fmt.Println("gradientColors:", gradientColors)
-		fmt.Println("gradientStops:", gradientStops)
+		bgIcon, err := getBgIcon(bgType, gradientColors, gradientStops, solidColor, linearGradientDegree, bgImagePath)
+		if err != nil {
+			return err
+		}
 
-		return nil
-
-		// return assetsgen.GenerateAppIconForAndroid(
-		// 	imagePath,
-		// 	outputName,
-		// 	assetsgen.AndroidAppIconOptions{
-		// 		RoundedCornerRadius: roundedCornerRadius,
-		// 		FolderName:          folderName,
-		// 		Padding:             padding,
-		// 		// BgIcon:              assetsgen.NewLinearGradientBackground(table assetsgen.GradientTable, degree float64),
-		// 	},
-		// )
+		return assetsgen.GenerateAppIconForAndroid(
+			imagePath,
+			outputName,
+			assetsgen.AndroidAppIconOptions{
+				RoundedCornerPercentRadius: roundedCornerPercentRadius,
+				FolderName:                 folderName,
+				Padding:                    padding,
+				BgIcon:                     bgIcon,
+			},
+		)
 	}
 
 	return &cli.Command{
@@ -91,6 +84,61 @@ func AndroidAppIcon() *cli.Command {
 			imageBgFlag,
 		},
 	}
+}
+
+func getBgIcon(
+	bgType string,
+	gradientColors []colorful.Color,
+	gradientStops []float64,
+	solidColor colorful.Color,
+	linearGradientDegree int,
+	bgImagePath string,
+) (assetsgen.BackgroundIcon, error) {
+	var BgIcon assetsgen.BackgroundIcon
+
+	switch bgType {
+	case "solid-color":
+		BgIcon = assetsgen.NewSolidColorBackground(solidColor)
+
+	case "linear-gradien":
+		table, err := generateGradientTable(gradientColors, gradientStops)
+		if err != nil {
+			return nil, err
+		}
+		BgIcon = assetsgen.NewLinearGradientBackground(table, linearGradientDegree)
+
+	case "radial-gradient":
+		table, err := generateGradientTable(gradientColors, gradientStops)
+		if err != nil {
+			return nil, err
+		}
+		BgIcon = assetsgen.NewRadialGradientBackground(table)
+
+	case "image":
+		BgIcon = assetsgen.NewImageBackground(bgImagePath)
+
+	default:
+		panic("we should not be here")
+	}
+
+	return BgIcon, nil
+}
+
+func generateGradientTable(colors []colorful.Color, stops []float64) (assetsgen.GradientTable, error) {
+	if len(colors) != len(stops) {
+		return nil, ErrColorsAndStopsLengthDidNotMatch
+	}
+
+	table := make(assetsgen.GradientTable, len(colors))
+
+	for i, c := range colors {
+		table[i] = assetsgen.GradientTableItem{
+			Col: c,
+			Pos: stops[i],
+		}
+	}
+
+	return table, nil
 }
 
 func paddingFlagFn(padding *float64) *cli.FloatFlag {
@@ -119,15 +167,15 @@ func outputNameFlagFn(outputName *string) *cli.StringFlag {
 	}
 }
 
-func cornerRadiusFlagFn(roundedCornerRadius *int) *cli.IntFlag {
-	return &cli.IntFlag{
+func cornerRadiusFlagFn(roundedCornerRadius *float64) *cli.FloatFlag {
+	return &cli.FloatFlag{
 		Name:        "corner-radius",
 		Aliases:     []string{"r"},
 		Destination: roundedCornerRadius,
-		Value:       100,
-		Validator: func(i int) error {
-			if i < 0 {
-				return ErrNigativeValueCorners
+		Value:       0,
+		Validator: func(i float64) error {
+			if i < 0 || i > 1 {
+				return ErrInvalidValueRange
 			}
 			return nil
 		},
@@ -139,9 +187,9 @@ func bgTypeFlagFn(bgType *string) *cli.StringFlag {
 		Name:    "bg-type",
 		Aliases: []string{"bg"},
 		Value:   "solid-color",
-		Usage:   "Set the backgorund type: solid-color, linear-gradien, radial-gradient, image",
+		Usage:   fmt.Sprint("Set the backgorund type: ", strings.Join(bgTypes, ",")),
 		Validator: func(s string) error {
-			bgTypes := []string{"solid-color", "linear-gradien", "radial-gradient", "image"}
+
 			if slices.Contains(bgTypes, s) {
 				return nil
 			}
@@ -157,6 +205,9 @@ func imageBgFlagFn(bgImagePath *string) *cli.StringFlag {
 		Value:       "",
 		Usage:       "Path to the backgound image",
 		Destination: bgImagePath,
+		Validator: func(imagePath string) error {
+			return assetsgen.IsFileExistsAndImage(imagePath)
+		},
 	}
 }
 
@@ -193,7 +244,7 @@ func gradientColorsFlagFn(colors *[]colorful.Color) *cli.StringFlag {
 			}
 
 			colorsFromUser := strings.Split(s, ",")
-			*colors = make([]colorful.Color, 0, len(colorsFromUser))
+			*colors = make([]colorful.Color, len(colorsFromUser))
 			for i, colorStr := range colorsFromUser {
 				c, err := colorful.Hex(colorStr)
 				if err != nil {
@@ -218,7 +269,7 @@ func gradientStopsFlagFn(stops *[]float64) *cli.StringFlag {
 			}
 
 			stopsFromUser := strings.Split(s, ",")
-			*stops = make([]float64, 0, len(stopsFromUser))
+			*stops = make([]float64, len(stopsFromUser))
 			for i, stopStr := range stopsFromUser {
 				stop, err := strconv.ParseFloat(stopStr, 64)
 				if err != nil {

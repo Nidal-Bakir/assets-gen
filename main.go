@@ -18,10 +18,10 @@ func main() {
 		imagePath,
 		"ic_launcher",
 		assetsgen.AndroidAppIconOptions{
-			RoundedCornerRadius: 25,
-			BgIcon:              BgIcon,
-			FolderName:          assetsgen.AndroidFolderMipmap,
-			Padding:             padding,
+			RoundedCornerPercentRadius: 0.1,
+			BgIcon:                     BgIcon,
+			FolderName:                 assetsgen.AndroidFolderMipmap,
+			Padding:                    padding,
 		},
 	)
 	if err != nil {

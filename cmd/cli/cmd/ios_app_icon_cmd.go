@@ -17,8 +17,8 @@ func IosAppIcon() *cli.Command {
 	}
 
 	action := func(ctx context.Context, c *cli.Command) error {
-		if !assetsgen.IsFileExists(imagePath) {
-			return ErrFileNotFound
+		if err := assetsgen.IsFileExistsAndImage(imagePath); err != nil {
+			return err
 		}
 		return nil
 	}

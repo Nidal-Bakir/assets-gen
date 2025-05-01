@@ -9,12 +9,12 @@ import (
 )
 
 var (
-	ErrInvalidBgType        = errors.New("invalid bg-type")
-	ErrFileNotFound         = errors.New("file not found")
-	ErrInvalidAndroidFolder = errors.New("invalid android folder name. possible values (mipmap, drawable)")
-	ErrNigativeValueCorners = errors.New("can't use nigative value for rounded corners")
-	ErrPaddingOutOfRange    = errors.New("padding should be between 0..1")
-	ErrInvalidColor         = errors.New("invalid color. e.g of valid colors #0000FF, #FFFFFF")
+	ErrInvalidBgType                   = errors.New("invalid bg-type")
+	ErrInvalidAndroidFolder            = errors.New("invalid android folder name. possible values (mipmap, drawable)")
+	ErrInvalidValueRange               = errors.New("invalid value range")
+	ErrPaddingOutOfRange               = errors.New("padding should be between 0..1")
+	ErrInvalidColor                    = errors.New("invalid color. e.g of valid colors #0000FF, #FFFFFF")
+	ErrColorsAndStopsLengthDidNotMatch = errors.New("The length fo colors should match the length of stops")
 )
 
 func androidFolderFlag(folderName *assetsgen.AndroidFolderName) *cli.StringFlag {

@@ -14,12 +14,14 @@ const (
 	RadialGradient GradientType = "radial"
 )
 
-// This table contains the "keypoints" of the colorgradient you want to generate.
-// The position of each keypoint has to live in the range [0,1]
-type GradientTable []struct {
+type GradientTableItem struct {
 	Col colorful.Color
 	Pos float64
 }
+
+// This table contains the "keypoints" of the colorgradient you want to generate.
+// The position of each keypoint has to live in the range [0,1]
+type GradientTable []GradientTableItem
 
 // This is the meat of the gradient computation. It returns a HCL-blend between
 // the two colors around `t`.
@@ -45,10 +47,10 @@ func (gt GradientTable) GetInterpolatedColorFor(t float64) colorful.Color {
 	return gt[len(gt)-1].Col
 }
 
-func createLinearGradient(colorsTable GradientTable, degree float64, w, h int) image.Image {
+func createLinearGradient(colorsTable GradientTable, degree int, w, h int) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
 
-	theta := degree * math.Pi / 180 // to radian
+	theta := float64(degree) * math.Pi / 180 // to radian
 	ux, uy := math.Cos(theta), math.Sin(theta)
 
 	W, H := float64(w), float64(h)

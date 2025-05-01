@@ -3,7 +3,6 @@ package assetsgen
 import (
 	"image"
 	"image/color"
-	"image/draw"
 	"math"
 	"os"
 	"path/filepath"
@@ -58,6 +57,7 @@ func (s imageInfoSlice) save() error {
 	}
 	return nil
 }
+
 func (s imageInfoSlice) saveWithCustomName(customImageName string) error {
 	for _, v := range s {
 		v.saveWithCustomName(customImageName)
@@ -74,8 +74,8 @@ func (s *imageInfoSlice) setAssets(assets []asset) *imageInfoSlice {
 }
 
 func newImageInfo(imagePath string, platform platformType, intent intention, lastFolderName func(screenType string) string) (imageInfo, error) {
-	if !IsFileExists(imagePath) {
-		return imageInfo{}, ErrFileNotFound
+	if err := IsFileExistsAndImage(imagePath); err != nil {
+		return imageInfo{}, err
 	}
 
 	img, err := imgio.Open(imagePath)
@@ -138,33 +138,23 @@ func (imgInfo *imageInfo) resize(w, h int) *imageInfo {
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) squareImageWithPadding(padding int) *imageInfo {
+func (imgInfo *imageInfo) squareImageEmptyPixel() *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
-	w := imgBounds.Dx() + padding
-	h := imgBounds.Dy() + padding
+	w := imgBounds.Dx()
+	h := imgBounds.Dy()
 
 	if w == h { // it's already a square
 		return imgInfo
 	}
 
-	// to center the image in the Square
-	offset := image.Point{X: padding / 2, Y: padding / 2}
+	var padX, padY int
 	if w < h {
-		offset.X += (h - w) / 2
+		padX = (h - w) / 2
 	} else {
-		offset.Y += (w - h) / 2
+		padY = (w - h) / 2
 	}
 
-	w = int(math.Max(float64(w), float64(h)))
-	h = w
-
-	dst := image.NewRGBA(image.Rect(0, 0, w, h))
-
-	src := imgInfo.img
-	srcBounds := src.Bounds()
-	draw.Draw(dst, srcBounds.Add(offset), src, srcBounds.Min, draw.Src)
-
-	imgInfo.img = dst
+	imgInfo.img = clone.Pad(imgInfo.img, padX, padY, clone.NoFill)
 	return imgInfo
 }
 
@@ -193,7 +183,7 @@ func (imgInfo *imageInfo) convertNoneOpaqueToColor(newColor color.RGBA) *imageIn
 	})
 }
 
-func (imgInfo *imageInfo) clipRRect(r int) *imageInfo {
+func (imgInfo *imageInfo) updatePixels(updater func(x, y int, c color.Color) color.Color) *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w := imgBounds.Dx()
 	h := imgBounds.Dy()
@@ -202,15 +192,34 @@ func (imgInfo *imageInfo) clipRRect(r int) *imageInfo {
 
 	for y := range h {
 		for x := range w {
-			if isOnRoundedCorner(x, y, w, h, r) {
-				continue
-			}
-			dst.Set(x, y, imgInfo.img.At(x, y))
+			dst.Set(x, y, updater(x, y, imgInfo.img.At(x, y)))
 		}
 	}
 
 	imgInfo.img = dst
 	return imgInfo
+}
+
+func (imgInfo *imageInfo) clipRRect(percentRadius float64) *imageInfo {
+	if percentRadius == 1 {
+		return imgInfo.clipToCircle()
+	}
+
+	imgBounds := imgInfo.img.Bounds()
+	w := imgBounds.Dx()
+	h := imgBounds.Dy()
+
+	r := math.Max(float64(imgBounds.Dx()), float64(imgBounds.Dy())) / 2
+	roundedCornerRadius := int(math.Floor(r) * percentRadius)
+
+	return imgInfo.updatePixels(
+		func(x, y int, c color.Color) color.Color {
+			if isOnRoundedCorner(x, y, w, h, roundedCornerRadius) {
+				return color.RGBA{}
+			}
+			return c
+		},
+	)
 }
 
 func isOnRoundedCorner(x, y, w, h, r int) bool {
@@ -245,6 +254,29 @@ func isOnRoundedCorner(x, y, w, h, r int) bool {
 	return false
 }
 
+func (imgInfo *imageInfo) clipToCircle() *imageInfo {
+	imgBounds := imgInfo.img.Bounds()
+	w := float64(imgBounds.Dx())
+	h := float64(imgBounds.Dy())
+	r := math.Max(w, h) / 2
+	cx := w / 2
+	cy := h / 2
+
+	return imgInfo.updatePixels(
+		func(x, y int, c color.Color) color.Color {
+			if isPixelInsideCircle(x, y, cx, cy, r) {
+				return c
+			}
+			return color.RGBA{}
+		},
+	)
+}
+
+func isPixelInsideCircle(x, y int, cx, cy, radius float64) bool {
+	distance := math.Sqrt(math.Pow(float64(x)-cx, 2) + math.Pow(float64(y)-cy, 2))
+	return distance <= radius
+}
+
 func (imgInfo imageInfo) splitPerAsset(assets []asset) *imageInfoSlice {
 	s := make(imageInfoSlice, len(assets))
 	for i, a := range assets {
@@ -257,7 +289,7 @@ func (imgInfo imageInfo) splitPerAsset(assets []asset) *imageInfoSlice {
 func (imgInfo *imageInfo) resizeForAsset() *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w, h := imgInfo.asset.CalcSize(imgBounds.Dx(), imgBounds.Dy())
-	return imgInfo.resize(w, h).padding(imgInfo.asset.CalcPadding(w, h))
+	return imgInfo.resize(w, h)
 }
 
 func (imgInfo *imageInfo) padForAsset() *imageInfo {
@@ -285,7 +317,7 @@ func (imgInfo imageInfo) saveWithCustomName(customImageName string) error {
 	return nil
 }
 
-func (imgInfo *imageInfo) linearGradient(colorsTable GradientTable, degree float64) *imageInfo {
+func (imgInfo *imageInfo) linearGradient(colorsTable GradientTable, degree int) *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	imgInfo.img = createLinearGradient(colorsTable, degree, imgBounds.Dx(), imgBounds.Dy())
 	return imgInfo
@@ -314,27 +346,19 @@ func (imgInfo imageInfo) copy() *imageInfo {
 //
 // layout the imgs on top of each other the last image will be laid out at last
 func (imgInfo *imageInfo) stack(images ...imageInfo) *imageInfo {
-	imgBounds := imgInfo.img.Bounds()
-	w := imgBounds.Dx()
-	h := imgBounds.Dy()
-	dst := image.NewRGBA(image.Rect(0, 0, w, h))
-
 	images = append([]imageInfo{*imgInfo}, images...)
 	slices.Reverse(images)
 
-	for y := range h {
-		for x := range w {
+	return imgInfo.updatePixels(
+		func(x, y int, _ color.Color) color.Color {
 			for _, img := range images {
 				c := img.img.At(x, y)
 				_, _, _, a := c.RGBA()
 				if a != 0 {
-					dst.Set(x, y, c)
-					break
+					return c
 				}
 			}
-		}
-	}
-
-	imgInfo.img = dst
-	return imgInfo
+			return color.RGBA{}
+		},
+	)
 }

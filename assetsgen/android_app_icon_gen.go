@@ -94,6 +94,7 @@ var androidAppIconDpisLegacy = []asset{
 	androidAppIconDpiAsset{
 		dpiName: "xxxhdpi",
 		size:    192,
+		padding: 25,
 	},
 }
 
@@ -116,9 +117,10 @@ func (a androidAppIconDpiAsset) CalcPadding(_, _ int) int {
 }
 
 type AndroidAppIconOptions struct {
-	RoundedCornerRadius int
-	BgIcon              BackgroundIcon
-	FolderName          AndroidFolderName
+	// between [0..1] as percentage of the Radius. For example 1 would make the a full circle clip of the image, and 0 will do nothing, 0.5 will make rounded corners
+	RoundedCornerPercentRadius float64
+	BgIcon                     BackgroundIcon
+	FolderName                 AndroidFolderName
 	// between [0..1] as percentage of the maximum axis (w,h) of the image
 	Padding float64
 }
@@ -132,14 +134,17 @@ func GenerateAppIconForAndroid(imagePath string, outputFileName string, option A
 	bounds := logoImage.img.Bounds()
 	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * option.Padding
 	pad = math.Floor(pad)
-	logoImage.squareImageWithPadding(int(pad))
+
+	logoImage.
+		squareImageEmptyPixel().
+		padding(int(pad))
 
 	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
 	if err != nil {
 		return err
 	}
 
-	err = generateLegacyAppIcon(logoImage, bgImage, option.RoundedCornerRadius, androidAppIconDpisLegacy, outputFileName)
+	err = generateLegacyAppIcon(logoImage, bgImage, option.RoundedCornerPercentRadius, androidAppIconDpisLegacy, outputFileName)
 	if err != nil {
 		return err
 	}
@@ -152,16 +157,17 @@ func GenerateAppIconForAndroid(imagePath string, outputFileName string, option A
 	return nil
 }
 
-func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerRadius int, androidAppIconDpisLegacy []asset, outputFileName string) error {
+func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerPercentRadius float64, androidAppIconDpisLegacy []asset, outputFileName string) error {
 	if len(outputFileName) != 0 {
 		outputFileName = fmt.Sprint(outputFileName, logoImage.imageExt)
 	}
 
 	err := bgImage.
 		stack(logoImage).
-		clipRRect(roundedCornerRadius).
-		padding(150). // TODO: check this value
+		clipRRect(roundedCornerPercentRadius).
 		splitPerAsset(androidAppIconDpisLegacy).
+		resizeForAssets().
+		padForAsset().
 		resizeForAssets().
 		saveWithCustomName(outputFileName)
 

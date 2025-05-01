@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Nidal-Bakir/assets-gen/cmd/cli/cmd"
 	"github.com/urfave/cli/v3"
@@ -13,12 +15,15 @@ import (
 var cmdErrors = []error{
 	cmd.ErrInvalidBgType,
 	cmd.ErrInvalidAndroidFolder,
-	cmd.ErrNigativeValueCorners,
+	cmd.ErrInvalidValueRange,
 	cmd.ErrPaddingOutOfRange,
 	cmd.ErrInvalidColor,
+	cmd.ErrColorsAndStopsLengthDidNotMatch,
 }
 
 func main() {
+	startTime := time.Now()
+
 	cmd := &cli.Command{
 		Commands: []*cli.Command{
 			cmd.AndroidAppIcon(),
@@ -32,6 +37,8 @@ func main() {
 	if err != nil && !isCmdDefinedError(err) {
 		log.Fatal(err)
 	}
+
+	fmt.Printf("took %.2fsec\n", time.Since(startTime).Seconds())
 }
 
 func isCmdDefinedError(err error) bool {

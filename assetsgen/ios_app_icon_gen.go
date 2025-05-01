@@ -210,7 +210,7 @@ func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
 	bounds := logoImage.img.Bounds()
 	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * option.Padding
 	pad = math.Floor(pad)
-	logoImage.squareImageWithPadding(int(pad))
+	logoImage.squareImageEmptyPixel().padding(int(pad))
 
 	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
 	if err != nil {

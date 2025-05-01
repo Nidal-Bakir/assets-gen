@@ -3,6 +3,7 @@ package assetsgen
 import (
 	"errors"
 	"os"
+	"strings"
 
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/lucasb-eyer/go-colorful"
@@ -42,7 +43,7 @@ type BackgroundIcon interface {
 
 type gradientBackground struct {
 	table        GradientTable
-	degree       float64
+	degree       int
 	gradientType GradientType
 }
 
@@ -59,7 +60,7 @@ func (g gradientBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
 	return *bgImage, nil
 }
 
-func NewLinearGradientBackground(table GradientTable, degree float64) BackgroundIcon {
+func NewLinearGradientBackground(table GradientTable, degree int) BackgroundIcon {
 	return gradientBackground{table: table, degree: degree, gradientType: LinearGradient}
 }
 
@@ -80,8 +81,8 @@ func (i imageBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
 	bgImage.img = img
 
 	logoBounds := logo.img.Bounds()
-	
-	bgImage.squareImageWithPadding(0).
+
+	bgImage.squareImageEmptyPixel().
 		resize(logoBounds.Dx(), logoBounds.Dy())
 
 	return *bgImage, nil
@@ -107,13 +108,21 @@ func NewSolidColorBackground(c colorful.Color) BackgroundIcon {
 	return solidColorBackground{c}
 }
 
-func IsFileExists(filePath string) bool {
-	_, err := os.Stat(filePath)
+func IsFileExistsAndImage(filePath string) error {
+	info, err := os.Stat(filePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return false
+			return ErrFileNotFound
 		}
-		panic(err)
+		return err
 	}
-	return true
+	name := info.Name()
+
+	if strings.HasSuffix(name, ".png") ||
+		strings.HasSuffix(name, ".jpg") ||
+		strings.HasSuffix(name, ".jpeg") {
+		return nil
+	}
+
+	return ErrUnsupportedFileType
 }

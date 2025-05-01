@@ -50,7 +50,7 @@ func GenerateNotificationIconForAndroid(imagePath string, folderName AndroidFold
 
 	err = imgInfo.
 		convertNoneOpaqueToColor(color.RGBA{R: 255, G: 255, B: 255, A: 255}).
-		squareImageWithPadding(0).
+		squareImageEmptyPixel().
 		splitPerAsset(androidNotificationIconDpis).
 		resizeForAssets().
 		saveWithCustomName(outputFileName)
