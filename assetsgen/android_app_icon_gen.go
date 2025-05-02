@@ -6,7 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
+
+// make sure to update it if you update the dpis slices below
+const MAX_DPI_SIZE_FOR_APP_ICON = 432
 
 // MDPI    - 108px
 // HDPI    - 162px
@@ -32,7 +36,7 @@ var androidAdaptiveAppIconLayerDpisV26 = []asset{
 	},
 	androidAppIconDpiAsset{
 		dpiName: "xxxhdpi",
-		size:    432,
+		size:    MAX_DPI_SIZE_FOR_APP_ICON,
 	},
 }
 
@@ -78,23 +82,27 @@ var androidAppIconDpisLegacy = []asset{
 	androidAppIconDpiAsset{
 		dpiName: "mdpi",
 		size:    48,
+		padding: 4,
 	},
 	androidAppIconDpiAsset{
 		dpiName: "hdpi",
 		size:    72,
+		padding: 6,
 	},
 	androidAppIconDpiAsset{
 		dpiName: "xhdpi",
 		size:    96,
+		padding: 8,
 	},
 	androidAppIconDpiAsset{
 		dpiName: "xxhdpi",
 		size:    144,
+		padding: 12,
 	},
 	androidAppIconDpiAsset{
 		dpiName: "xxxhdpi",
 		size:    192,
-		padding: 25,
+		padding: 24,
 	},
 }
 
@@ -119,10 +127,18 @@ func (a androidAppIconDpiAsset) CalcPadding(_, _ int) int {
 type AndroidAppIconOptions struct {
 	// between [0..1] as percentage of the Radius. For example 1 would make the a full circle clip of the image, and 0 will do nothing, 0.5 will make rounded corners
 	RoundedCornerPercentRadius float64
-	BgIcon                     BackgroundIcon
-	FolderName                 AndroidFolderName
+
+	// between [0..1] as percentage of how match the pixel should be transparent to keep its original color.
+	AlphaThreshold float64
+
+	BgIcon     BackgroundIcon
+	FolderName AndroidFolderName
+
 	// between [0..1] as percentage of the maximum axis (w,h) of the image
 	Padding float64
+
+	// removes the white spaces from the edges of the logo
+	TrimWhiteSpace bool
 }
 
 func GenerateAppIconForAndroid(imagePath string, outputFileName string, option AndroidAppIconOptions) error {
@@ -131,45 +147,68 @@ func GenerateAppIconForAndroid(imagePath string, outputFileName string, option A
 		return err
 	}
 
+	if option.TrimWhiteSpace {
+		logoImage.TrimWhiteSpace()
+	}
+
 	bounds := logoImage.img.Bounds()
+	fmt.Println(bounds)
 	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * option.Padding
 	pad = math.Floor(pad)
 
 	logoImage.
-		squareImageEmptyPixel().
-		padding(int(pad))
+		SquareImageEmptyPixel().
+		ResizeSquare(MAX_DPI_SIZE_FOR_APP_ICON). // for performance optimization
+		Padding(int(pad)).
+		ResizeSquare(MAX_DPI_SIZE_FOR_APP_ICON). // for performance optimization
+		RemoveAlphaOnThreshold(option.AlphaThreshold)
 
 	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
 	if err != nil {
 		return err
 	}
 
-	err = generateLegacyAppIcon(logoImage, bgImage, option.RoundedCornerPercentRadius, androidAppIconDpisLegacy, outputFileName)
-	if err != nil {
-		return err
-	}
+	w := sync.WaitGroup{}
+	w.Add(2)
 
-	err = generateAdaptiveAppIcon(logoImage, bgImage, androidAdaptiveAppIconLayerDpisV26, androidAdaptiveAppIconLogoDpisV26, outputFileName)
-	if err != nil {
-		return err
+	var legacyAppIconError error
+	var adaptiveAppIconError error
+
+	go func() {
+		defer w.Done()
+		legacyAppIconError = generateLegacyAppIcon(logoImage, bgImage, option.RoundedCornerPercentRadius, option.AlphaThreshold, androidAppIconDpisLegacy, outputFileName)
+	}()
+
+	go func() {
+		defer w.Done()
+		adaptiveAppIconError = generateAdaptiveAppIcon(logoImage, bgImage, androidAdaptiveAppIconLayerDpisV26, androidAdaptiveAppIconLogoDpisV26, outputFileName)
+	}()
+
+	w.Wait()
+
+	if legacyAppIconError != nil {
+		return legacyAppIconError
+	}
+	if adaptiveAppIconError != nil {
+		return adaptiveAppIconError
 	}
 
 	return nil
 }
 
-func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerPercentRadius float64, androidAppIconDpisLegacy []asset, outputFileName string) error {
+func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerPercentRadius float64, AlphaThreshold float64, androidAppIconDpisLegacy []asset, outputFileName string) error {
 	if len(outputFileName) != 0 {
 		outputFileName = fmt.Sprint(outputFileName, logoImage.imageExt)
 	}
 
 	err := bgImage.
-		stack(logoImage).
-		clipRRect(roundedCornerPercentRadius).
-		splitPerAsset(androidAppIconDpisLegacy).
-		resizeForAssets().
-		padForAsset().
-		resizeForAssets().
-		saveWithCustomName(outputFileName)
+		StackWithNoAlpha(AlphaThreshold, logoImage).
+		ClipRRect(roundedCornerPercentRadius).
+		SplitPerAsset(androidAppIconDpisLegacy).
+		ResizeForAssets().
+		PadForAsset().
+		ResizeForAssets().
+		SaveWithCustomName(outputFileName)
 
 	if err != nil {
 		return err
@@ -185,11 +224,11 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 	}
 
 	logos := logoImage.
-		splitPerAsset(androidAdaptiveAppIconLogoDpisV26).
-		resizeForAssets().
-		padForAsset().
-		setAssets(androidAdaptiveAppIconLayerDpisV26).
-		resizeForAssets()
+		SplitPerAsset(androidAdaptiveAppIconLogoDpisV26).
+		ResizeForAssets().
+		PadForAsset().
+		SetAssets(androidAdaptiveAppIconLayerDpisV26).
+		ResizeForAssets()
 
 	shouldUseAssetName := len(outputFileName) == 0
 	foregroundName := fmt.Sprint(outputFileName, "_foreground", logoImage.imageExt)
@@ -202,26 +241,26 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 			monochromeName = fmt.Sprint(logo.imgNameWithoutExt, "_monochrome", logoImage.imageExt)
 		}
 
-		err := logo.saveWithCustomName(foregroundName)
+		err := logo.SaveWithCustomName(foregroundName)
 		if err != nil {
 			return err
 		}
 
-		err = logo.saveWithCustomName(monochromeName)
+		err = logo.SaveWithCustomName(monochromeName)
 		if err != nil {
 			return err
 		}
 	}
 
 	bgs := bgImage.
-		splitPerAsset(androidAdaptiveAppIconLayerDpisV26).
-		resizeForAssets()
+		SplitPerAsset(androidAdaptiveAppIconLayerDpisV26).
+		ResizeForAssets()
 
 	for _, bg := range *bgs {
 		if shouldUseAssetName {
 			backgroundName = fmt.Sprint(bg.imgNameWithoutExt, "_background", bg.imageExt)
 		}
-		err := bg.saveWithCustomName(backgroundName)
+		err := bg.SaveWithCustomName(backgroundName)
 		if err != nil {
 			return err
 		}

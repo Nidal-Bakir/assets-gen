@@ -38,7 +38,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("took %.2fsec\n", time.Since(startTime).Seconds())
+	fmt.Printf("\ntook %.2fsec\n", time.Since(startTime).Seconds())
 }
 
 func isCmdDefinedError(err error) bool {

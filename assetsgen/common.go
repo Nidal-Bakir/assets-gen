@@ -48,13 +48,13 @@ type gradientBackground struct {
 }
 
 func (g gradientBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
-	bgImage := logo.copy()
+	bgImage := logo.Copy()
 
 	switch g.gradientType {
 	case LinearGradient:
-		bgImage.linearGradient(g.table, g.degree)
+		bgImage.LinearGradient(g.table, g.degree)
 	case RadialGradient:
-		bgImage.radialGradient(g.table)
+		bgImage.RadialGradient(g.table)
 	}
 
 	return *bgImage, nil
@@ -73,7 +73,7 @@ type imageBackground struct {
 }
 
 func (i imageBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
-	bgImage := logo.copy()
+	bgImage := logo.Copy()
 	img, err := imgio.Open(i.imagePath)
 	if err != nil {
 		return imageInfo{}, err
@@ -82,8 +82,9 @@ func (i imageBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
 
 	logoBounds := logo.img.Bounds()
 
-	bgImage.squareImageEmptyPixel().
-		resize(logoBounds.Dx(), logoBounds.Dy())
+	bgImage.SquareImageEmptyPixel().
+		Resize(logoBounds.Dx(), logoBounds.Dy()).
+		RemoveAlpha()
 
 	return *bgImage, nil
 }
@@ -98,9 +99,9 @@ type solidColorBackground struct {
 }
 
 func (s solidColorBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
-	bgImage := logo.copy()
+	bgImage := logo.Copy()
 	solidColorGradient := GradientTable{{Col: s.color, Pos: 1.0}}
-	bgImage.linearGradient(solidColorGradient, 0)
+	bgImage.LinearGradient(solidColorGradient, 0)
 	return *bgImage, nil
 }
 

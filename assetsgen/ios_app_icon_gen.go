@@ -190,6 +190,9 @@ func (a iosAppIconDpiAsset) CalcPadding(_, _ int) int {
 type IosAppIconOptions struct {
 	BgIcon BackgroundIcon
 
+	// between [0..1] as percentage of how match the pixel should be transparent to keep its original color.
+	AlphaThreshold float64
+
 	// between [0..1] as percentage of the maximum axis (w,h) of the image
 	Padding float64
 }
@@ -210,14 +213,14 @@ func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
 	bounds := logoImage.img.Bounds()
 	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * option.Padding
 	pad = math.Floor(pad)
-	logoImage.squareImageEmptyPixel().padding(int(pad))
+	logoImage.SquareImageEmptyPixel().Padding(int(pad))
 
 	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
 	if err != nil {
 		return err
 	}
 
-	err = generateIosAppIcon(logoImage, bgImage, iosAppIconDpis)
+	err = generateIosAppIcon(logoImage, bgImage, option.AlphaThreshold, iosAppIconDpis)
 	if err != nil {
 		return err
 	}
@@ -225,14 +228,14 @@ func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
 	return nil
 }
 
-func generateIosAppIcon(logoImage imageInfo, bgImage imageInfo, iosAppIconDpis []asset) error {
+func generateIosAppIcon(logoImage imageInfo, bgImage imageInfo, alphaThreshold float64, iosAppIconDpis []asset) error {
 	imgs := bgImage.
-		stack(logoImage).
-		splitPerAsset(iosAppIconDpis).
-		resizeForAssets()
+		StackWithNoAlpha(alphaThreshold, logoImage).
+		SplitPerAsset(iosAppIconDpis).
+		ResizeForAssets()
 
 	for _, img := range *imgs {
-		err := img.saveWithCustomName(img.asset.Name())
+		err := img.SaveWithCustomName(img.asset.Name())
 		if err != nil {
 			return err
 		}

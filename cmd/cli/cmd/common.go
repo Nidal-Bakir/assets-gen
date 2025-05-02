@@ -14,7 +14,7 @@ var (
 	ErrInvalidValueRange               = errors.New("invalid value range")
 	ErrPaddingOutOfRange               = errors.New("padding should be between 0..1")
 	ErrInvalidColor                    = errors.New("invalid color. e.g of valid colors #0000FF, #FFFFFF")
-	ErrColorsAndStopsLengthDidNotMatch = errors.New("The length fo colors should match the length of stops")
+	ErrColorsAndStopsLengthDidNotMatch = errors.New("the length fo colors should match the length of stops")
 )
 
 func androidFolderFlag(folderName *assetsgen.AndroidFolderName) *cli.StringFlag {
@@ -40,7 +40,7 @@ func androidFolderFlag(folderName *assetsgen.AndroidFolderName) *cli.StringFlag 
 func imageArg(imagePath *string) *cli.StringArg {
 	return &cli.StringArg{
 		Name:        "image",
-		UsageText:   "The image path",
+		UsageText:   "<image path>",
 		Destination: imagePath,
 	}
 }

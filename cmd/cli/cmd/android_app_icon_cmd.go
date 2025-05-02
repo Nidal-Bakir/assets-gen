@@ -12,35 +12,26 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var bgTypes = []string{"solid-color", "linear-gradien", "radial-gradient", "image"}
+var bgTypes = []string{"solid-color", "linear-gradient", "radial-gradient", "image"}
 
 func AndroidAppIcon() *cli.Command {
 	var imagePath string
 	var outputName string
-	var roundedCornerPercentRadius float64
 
 	var bgType string
 	var bgImagePath string
 	var linearGradientDegree int
 	var solidColor = colorful.Color{R: 1, G: 1, B: 1}
-	var gradientColors = []colorful.Color{colorful.Color{R: 1, G: 1, B: 1}, colorful.Color{R: 0, G: 0, B: 0}}
+	var gradientColors = []colorful.Color{{R: 1, G: 1, B: 1}, {R: 0, G: 0, B: 0}}
 	var gradientStops = []float64{0.0, 1.0}
 
+	var trimWhiteSpace bool
+	var roundedCornerPercentRadius float64
+	var alphaThreshold float64
 	var padding float64
 	var folderName = assetsgen.AndroidFolderMipmap
 
 	imageArg := imageArg(&imagePath)
-
-	cornerRadiusFlag := cornerRadiusFlagFn(&roundedCornerPercentRadius)
-	folderNameFlag := androidFolderFlag(&folderName)
-	paddingFlag := paddingFlagFn(&padding)
-	outputNameFlag := outputNameFlagFn(&outputName)
-	bgTypeFlag := bgTypeFlagFn(&bgType)
-	solidColorFlag := solidColorFlagFn(&solidColor)
-	gradientColorsFlag := gradientColorsFlagFn(&gradientColors)
-	gradientStopsFlag := gradientStopsFlagFn(&gradientStops)
-	linearGradientDegreeFlag := linearGradientDegreeFlagFn(&linearGradientDegree)
-	imageBgFlag := imageBgFlagFn(&bgImagePath)
 
 	action := func(ctx context.Context, c *cli.Command) error {
 		if err := assetsgen.IsFileExistsAndImage(imagePath); err != nil {
@@ -60,6 +51,8 @@ func AndroidAppIcon() *cli.Command {
 				FolderName:                 folderName,
 				Padding:                    padding,
 				BgIcon:                     bgIcon,
+				AlphaThreshold:             alphaThreshold,
+				TrimWhiteSpace:             trimWhiteSpace,
 			},
 		)
 	}
@@ -72,16 +65,18 @@ func AndroidAppIcon() *cli.Command {
 			imageArg,
 		},
 		Flags: []cli.Flag{
-			cornerRadiusFlag,
-			folderNameFlag,
-			outputNameFlag,
-			paddingFlag,
-			bgTypeFlag,
-			solidColorFlag,
-			gradientColorsFlag,
-			gradientStopsFlag,
-			linearGradientDegreeFlag,
-			imageBgFlag,
+			cornerRadiusFlagFn(&roundedCornerPercentRadius),
+			androidFolderFlag(&folderName),
+			paddingFlagFn(&padding),
+			alphaThresholdFlagFn(&alphaThreshold),
+			outputNameFlagFn(&outputName),
+			bgTypeFlagFn(&bgType),
+			solidColorFlagFn(&solidColor),
+			gradientColorsFlagFn(&gradientColors),
+			gradientStopsFlagFn(&gradientStops),
+			linearGradientDegreeFlagFn(&linearGradientDegree),
+			imageBgFlagFn(&bgImagePath),
+			trimWhiteSpaceFlagFn(&trimWhiteSpace),
 		},
 	}
 }
@@ -100,7 +95,7 @@ func getBgIcon(
 	case "solid-color":
 		BgIcon = assetsgen.NewSolidColorBackground(solidColor)
 
-	case "linear-gradien":
+	case "linear-gradient":
 		table, err := generateGradientTable(gradientColors, gradientStops)
 		if err != nil {
 			return nil, err
@@ -146,7 +141,23 @@ func paddingFlagFn(padding *float64) *cli.FloatFlag {
 		Name:        "padding",
 		Aliases:     []string{"p"},
 		Destination: padding,
-		Value:       0.1,
+		Value:       0.01,
+		Usage:       "Between [0..1] as percentage of the maximum axis (w,h) of the image",
+		Validator: func(i float64) error {
+			if i < 0 || i > 1 {
+				return ErrPaddingOutOfRange
+			}
+			return nil
+		},
+	}
+}
+
+func alphaThresholdFlagFn(alphaThreshold *float64) *cli.FloatFlag {
+	return &cli.FloatFlag{
+		Name:        "alpha-threshold",
+		Destination: alphaThreshold,
+		Value:       0.5,
+		Usage:       "Between [0..1] as percentage of how match the pixel should be transparent to keep its original color.",
 		Validator: func(i float64) error {
 			if i < 0 || i > 1 {
 				return ErrPaddingOutOfRange
@@ -161,7 +172,7 @@ func outputNameFlagFn(outputName *string) *cli.StringFlag {
 		Name:        "output",
 		Aliases:     []string{"o"},
 		Value:       "",
-		Usage:       "Set a cutom output name for the generated files. Only name without extension.",
+		Usage:       "Set a custom output name for the generated files. Only name without extension.",
 		DefaultText: "The default is to use the image name as output name",
 		Destination: outputName,
 	}
@@ -171,8 +182,9 @@ func cornerRadiusFlagFn(roundedCornerRadius *float64) *cli.FloatFlag {
 	return &cli.FloatFlag{
 		Name:        "corner-radius",
 		Aliases:     []string{"r"},
+		Usage:       "Between [0..1] as percentage of the Radius. For example 1 would make the a full circle clip of the image, and 0 will do nothing, 0.5 will make rounded corners",
 		Destination: roundedCornerRadius,
-		Value:       0,
+		Value:       0.2,
 		Validator: func(i float64) error {
 			if i < 0 || i > 1 {
 				return ErrInvalidValueRange
@@ -187,7 +199,7 @@ func bgTypeFlagFn(bgType *string) *cli.StringFlag {
 		Name:    "bg-type",
 		Aliases: []string{"bg"},
 		Value:   "solid-color",
-		Usage:   fmt.Sprint("Set the backgorund type: ", strings.Join(bgTypes, ",")),
+		Usage:   fmt.Sprint("Set the background type: ", strings.Join(bgTypes, ",")),
 		Validator: func(s string) error {
 
 			if slices.Contains(bgTypes, s) {
@@ -203,7 +215,7 @@ func imageBgFlagFn(bgImagePath *string) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:        "bg-path",
 		Value:       "",
-		Usage:       "Path to the backgound image",
+		Usage:       "Path to the background image",
 		Destination: bgImagePath,
 		Validator: func(imagePath string) error {
 			return assetsgen.IsFileExistsAndImage(imagePath)
@@ -211,11 +223,20 @@ func imageBgFlagFn(bgImagePath *string) *cli.StringFlag {
 	}
 }
 
+func trimWhiteSpaceFlagFn(trimWhiteSpace *bool) *cli.BoolFlag {
+	return &cli.BoolFlag{
+		Name:        "trim",
+		Value:       false,
+		Usage:       "Removes the white spaces from the edges of the logo",
+		Destination: trimWhiteSpace,
+	}
+}
+
 func solidColorFlagFn(solidBgColor *colorful.Color) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:  "color",
 		Value: "#FFFFFF",
-		Usage: "The solid backgorund color default to white",
+		Usage: "The solid background color default to white",
 		Action: func(ctx context.Context, c *cli.Command, s string) error {
 			color, err := colorful.Hex(s)
 			*solidBgColor = color
@@ -236,8 +257,8 @@ func linearGradientDegreeFlagFn(degree *int) *cli.IntFlag {
 func gradientColorsFlagFn(colors *[]colorful.Color) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:  "colors",
-		Value: "#FFFFFF,#FFFFFF",
-		Usage: "The gradient backgorund colors, comman saperated e.g: #0000FF,#FF0000. You should supply the stops also. The colors count should match the stops",
+		Value: "#FFFFFF,#000000",
+		Usage: "The gradient background colors, comma separated e.g: #0000FF,#FF0000. You should supply the stops also. The colors count should match the stops",
 		Action: func(ctx context.Context, c *cli.Command, s string) error {
 			if len(s) == 0 {
 				return nil
@@ -262,7 +283,7 @@ func gradientStopsFlagFn(stops *[]float64) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:  "stops",
 		Value: "0.0,1.0",
-		Usage: "The gradient backgorund colors stops, comman saperated e.g: 0.0,1.0. The stops count should match the colors",
+		Usage: "The gradient background colors stops, comma separated e.g: 0.0,1.0. The stops count should match the colors",
 		Action: func(ctx context.Context, c *cli.Command, s string) error {
 			if len(s) == 0 {
 				return nil

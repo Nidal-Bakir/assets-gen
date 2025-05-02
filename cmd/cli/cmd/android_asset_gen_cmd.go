@@ -20,7 +20,7 @@ func AndroidAssetGen() *cli.Command {
 		if err := assetsgen.IsFileExistsAndImage(imagePath); err != nil {
 			return err
 		}
-		return assetsgen.GenerateImageAsstesForAndroid(imagePath, folderName)
+		return assetsgen.GenerateImageAssetsForAndroid(imagePath, folderName)
 	}
 
 	return &cli.Command{

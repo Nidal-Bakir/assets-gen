@@ -16,10 +16,11 @@ const (
 
 type GradientTableItem struct {
 	Col colorful.Color
+	// The position keypoint has to live in the range [0,1]
 	Pos float64
 }
 
-// This table contains the "keypoints" of the colorgradient you want to generate.
+// This table contains the "keypoints" of the color gradient you want to generate.
 // The position of each keypoint has to live in the range [0,1]
 type GradientTable []GradientTableItem
 
@@ -75,10 +76,9 @@ func createLinearGradient(colorsTable GradientTable, degree int, w, h int) image
 			// project (x,y) onto our direction vector
 			r := float64(x)*ux + float64(y)*uy
 
-			// normalize into [0…1]
+			// normalize to [0…1]
 			t := (r - rMin) / (rMax - rMin)
 
-			// sample and paint
 			c := colorsTable.GetInterpolatedColorFor(t)
 			img.Set(x, y, c)
 		}
@@ -101,10 +101,9 @@ func createRadialGradient(colorsTable GradientTable, w, h int) image.Image {
 		for x := range w {
 			distance := math.Abs(distance(center, image.Pt(x, y)))
 
-			// normalize into [0…1]
+			// normalize to [0…1]
 			t := distance / r
 
-			// sample and paint
 			c := colorsTable.GetInterpolatedColorFor(t)
 			img.Set(x, y, c)
 		}

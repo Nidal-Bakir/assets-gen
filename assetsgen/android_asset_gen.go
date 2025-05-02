@@ -2,7 +2,7 @@ package assetsgen
 
 import "math"
 
-func GenerateImageAsstesForAndroid(imagePath string, folderName AndroidFolderName) error {
+func GenerateImageAssetsForAndroid(imagePath string, folderName AndroidFolderName) error {
 	imgInfo, err := genImageInfoForAndroid(imagePath, folderName, intentAsset)
 	if err != nil {
 		return err
@@ -11,9 +11,9 @@ func GenerateImageAsstesForAndroid(imagePath string, folderName AndroidFolderNam
 	androidScreenDpis := generateAndroidScreenDpis(imgBounds.Dx(), imgBounds.Dy())
 
 	err = imgInfo.
-		splitPerAsset(androidScreenDpis).
-		resizeForAssets().
-		save()
+		SplitPerAsset(androidScreenDpis).
+		ResizeForAssets().
+		Save()
 	if err != nil {
 		return err
 	}

@@ -3,11 +3,13 @@ package assetsgen
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"math"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/anthonynsimon/bild/adjust"
 	"github.com/anthonynsimon/bild/clone"
@@ -28,44 +30,44 @@ type imageInfo struct {
 
 type imageInfoSlice []imageInfo
 
-func (s *imageInfoSlice) forEeach(fn func(imageInfo) imageInfo) *imageInfoSlice {
+func (s *imageInfoSlice) ForEach(fn func(imageInfo) imageInfo) *imageInfoSlice {
 	for i, v := range *s {
 		(*s)[i] = fn(v)
 	}
 	return s
 }
 
-func (s *imageInfoSlice) resizeForAssets() *imageInfoSlice {
-	return s.forEeach(
+func (s *imageInfoSlice) ResizeForAssets() *imageInfoSlice {
+	return s.ForEach(
 		func(imgInfo imageInfo) imageInfo {
-			return *imgInfo.resizeForAsset()
+			return *imgInfo.ResizeForAsset()
 		},
 	)
 }
 
-func (s *imageInfoSlice) padForAsset() *imageInfoSlice {
-	return s.forEeach(
+func (s *imageInfoSlice) PadForAsset() *imageInfoSlice {
+	return s.ForEach(
 		func(imgInfo imageInfo) imageInfo {
-			return *imgInfo.padForAsset()
+			return *imgInfo.PadForAsset()
 		},
 	)
 }
 
-func (s imageInfoSlice) save() error {
+func (s imageInfoSlice) Save() error {
 	for _, v := range s {
-		v.save()
+		v.Save()
 	}
 	return nil
 }
 
-func (s imageInfoSlice) saveWithCustomName(customImageName string) error {
+func (s imageInfoSlice) SaveWithCustomName(customImageName string) error {
 	for _, v := range s {
-		v.saveWithCustomName(customImageName)
+		v.SaveWithCustomName(customImageName)
 	}
 	return nil
 }
 
-func (s *imageInfoSlice) setAssets(assets []asset) *imageInfoSlice {
+func (s *imageInfoSlice) SetAssets(assets []asset) *imageInfoSlice {
 	for i, v := range *s {
 		v.asset = assets[i]
 		(*s)[i] = v
@@ -99,7 +101,7 @@ func newImageInfo(imagePath string, platform platformType, intent intention, las
 		imageName:         imgName,
 		imageExt:          imageExt,
 		imgNameWithoutExt: imgNameWithoutExt,
-		genImageLocation: func(screenType, cutomImageName string) (string, string) {
+		genImageLocation: func(screenType, customImageName string) (string, string) {
 			dir := filepath.Join(
 				rootFolderName,
 				string(platform),
@@ -108,8 +110,8 @@ func newImageInfo(imagePath string, platform platformType, intent intention, las
 				lastFolderName(screenType),
 			)
 			name := imgName
-			if len(cutomImageName) != 0 {
-				name = cutomImageName
+			if len(customImageName) != 0 {
+				name = customImageName
 			}
 			return dir, name
 		},
@@ -133,12 +135,23 @@ func imageEncoderFromPath(imagePath string) (imgio.Encoder, error) {
 	}
 }
 
-func (imgInfo *imageInfo) resize(w, h int) *imageInfo {
+func (imgInfo *imageInfo) ResizeSquare(x int) *imageInfo {
+	return imgInfo.Resize(x, x)
+}
+
+func (imgInfo *imageInfo) Resize(w, h int) *imageInfo {
+	imgBounds := imgInfo.img.Bounds()
+	imgW := imgBounds.Dx()
+	imgH := imgBounds.Dy()
+	if imgW == w && imgH == h { // it's already a resized to w,h
+		return imgInfo
+	}
+
 	imgInfo.img = transform.Resize(imgInfo.img, w, h, transform.Linear)
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) squareImageEmptyPixel() *imageInfo {
+func (imgInfo *imageInfo) SquareImageEmptyPixel() *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w := imgBounds.Dx()
 	h := imgBounds.Dy()
@@ -158,7 +171,7 @@ func (imgInfo *imageInfo) squareImageEmptyPixel() *imageInfo {
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) padding(padding int) *imageInfo {
+func (imgInfo *imageInfo) Padding(padding int) *imageInfo {
 	if padding == 0 {
 		return imgInfo
 	}
@@ -167,15 +180,15 @@ func (imgInfo *imageInfo) padding(padding int) *imageInfo {
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) convertColors(fn func(color.RGBA) color.RGBA) *imageInfo {
+func (imgInfo *imageInfo) ConvertColors(fn func(color.RGBA) color.RGBA) *imageInfo {
 	imgInfo.img = adjust.Apply(imgInfo.img, func(pxColor color.RGBA) color.RGBA {
 		return fn(pxColor)
 	})
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) convertNoneOpaqueToColor(newColor color.RGBA) *imageInfo {
-	return imgInfo.convertColors(func(pxColor color.RGBA) color.RGBA {
+func (imgInfo *imageInfo) ConvertNoneOpaqueToColor(newColor color.RGBA) *imageInfo {
+	return imgInfo.ConvertColors(func(pxColor color.RGBA) color.RGBA {
 		if pxColor.A == 0 {
 			return pxColor
 		}
@@ -183,7 +196,7 @@ func (imgInfo *imageInfo) convertNoneOpaqueToColor(newColor color.RGBA) *imageIn
 	})
 }
 
-func (imgInfo *imageInfo) updatePixels(updater func(x, y int, c color.Color) color.Color) *imageInfo {
+func (imgInfo *imageInfo) UpdatePixels(updater func(x, y int, c color.Color) color.Color) *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w := imgBounds.Dx()
 	h := imgBounds.Dy()
@@ -200,9 +213,12 @@ func (imgInfo *imageInfo) updatePixels(updater func(x, y int, c color.Color) col
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) clipRRect(percentRadius float64) *imageInfo {
+func (imgInfo *imageInfo) ClipRRect(percentRadius float64) *imageInfo {
+	if percentRadius == 0 {
+		return imgInfo
+	}
 	if percentRadius == 1 {
-		return imgInfo.clipToCircle()
+		return imgInfo.ClipToCircle()
 	}
 
 	imgBounds := imgInfo.img.Bounds()
@@ -212,7 +228,7 @@ func (imgInfo *imageInfo) clipRRect(percentRadius float64) *imageInfo {
 	r := math.Max(float64(imgBounds.Dx()), float64(imgBounds.Dy())) / 2
 	roundedCornerRadius := int(math.Floor(r) * percentRadius)
 
-	return imgInfo.updatePixels(
+	return imgInfo.UpdatePixels(
 		func(x, y int, c color.Color) color.Color {
 			if isOnRoundedCorner(x, y, w, h, roundedCornerRadius) {
 				return color.RGBA{}
@@ -254,7 +270,7 @@ func isOnRoundedCorner(x, y, w, h, r int) bool {
 	return false
 }
 
-func (imgInfo *imageInfo) clipToCircle() *imageInfo {
+func (imgInfo *imageInfo) ClipToCircle() *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w := float64(imgBounds.Dx())
 	h := float64(imgBounds.Dy())
@@ -262,7 +278,7 @@ func (imgInfo *imageInfo) clipToCircle() *imageInfo {
 	cx := w / 2
 	cy := h / 2
 
-	return imgInfo.updatePixels(
+	return imgInfo.UpdatePixels(
 		func(x, y int, c color.Color) color.Color {
 			if isPixelInsideCircle(x, y, cx, cy, r) {
 				return c
@@ -277,7 +293,7 @@ func isPixelInsideCircle(x, y int, cx, cy, radius float64) bool {
 	return distance <= radius
 }
 
-func (imgInfo imageInfo) splitPerAsset(assets []asset) *imageInfoSlice {
+func (imgInfo imageInfo) SplitPerAsset(assets []asset) *imageInfoSlice {
 	s := make(imageInfoSlice, len(assets))
 	for i, a := range assets {
 		s[i] = imgInfo
@@ -286,23 +302,23 @@ func (imgInfo imageInfo) splitPerAsset(assets []asset) *imageInfoSlice {
 	return &s
 }
 
-func (imgInfo *imageInfo) resizeForAsset() *imageInfo {
+func (imgInfo *imageInfo) ResizeForAsset() *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w, h := imgInfo.asset.CalcSize(imgBounds.Dx(), imgBounds.Dy())
-	return imgInfo.resize(w, h)
+	return imgInfo.Resize(w, h)
 }
 
-func (imgInfo *imageInfo) padForAsset() *imageInfo {
+func (imgInfo *imageInfo) PadForAsset() *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w, h := imgInfo.asset.CalcSize(imgBounds.Dx(), imgBounds.Dy())
-	return imgInfo.padding(imgInfo.asset.CalcPadding(w, h))
+	return imgInfo.Padding(imgInfo.asset.CalcPadding(w, h))
 }
 
-func (imgInfo imageInfo) save() error {
-	return imgInfo.saveWithCustomName("")
+func (imgInfo imageInfo) Save() error {
+	return imgInfo.SaveWithCustomName("")
 }
 
-func (imgInfo imageInfo) saveWithCustomName(customImageName string) error {
+func (imgInfo imageInfo) SaveWithCustomName(customImageName string) error {
 	dir, name := imgInfo.genImageLocation(imgInfo.asset.Name(), customImageName)
 	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
@@ -317,19 +333,19 @@ func (imgInfo imageInfo) saveWithCustomName(customImageName string) error {
 	return nil
 }
 
-func (imgInfo *imageInfo) linearGradient(colorsTable GradientTable, degree int) *imageInfo {
+func (imgInfo *imageInfo) LinearGradient(colorsTable GradientTable, degree int) *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	imgInfo.img = createLinearGradient(colorsTable, degree, imgBounds.Dx(), imgBounds.Dy())
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) radialGradient(colorsTable GradientTable) *imageInfo {
+func (imgInfo *imageInfo) RadialGradient(colorsTable GradientTable) *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	imgInfo.img = createRadialGradient(colorsTable, imgBounds.Dx(), imgBounds.Dy())
 	return imgInfo
 }
 
-func (imgInfo imageInfo) copy() *imageInfo {
+func (imgInfo imageInfo) Copy() *imageInfo {
 	return &imageInfo{
 		img:               clone.AsRGBA(imgInfo.img),
 		imagePath:         imgInfo.imagePath,
@@ -342,14 +358,14 @@ func (imgInfo imageInfo) copy() *imageInfo {
 	}
 }
 
-// All the imgs should be the same width and height
+// All the images should be the same width and height
 //
-// layout the imgs on top of each other the last image will be laid out at last
-func (imgInfo *imageInfo) stack(images ...imageInfo) *imageInfo {
+// layout the images on top of each other the last image will be laid out at last
+func (imgInfo *imageInfo) Stack(images ...imageInfo) *imageInfo {
 	images = append([]imageInfo{*imgInfo}, images...)
 	slices.Reverse(images)
 
-	return imgInfo.updatePixels(
+	return imgInfo.UpdatePixels(
 		func(x, y int, _ color.Color) color.Color {
 			for _, img := range images {
 				c := img.img.At(x, y)
@@ -361,4 +377,196 @@ func (imgInfo *imageInfo) stack(images ...imageInfo) *imageInfo {
 			return color.RGBA{}
 		},
 	)
+}
+
+func (imgInfo *imageInfo) StackWithNoAlpha(threshold float64, images ...imageInfo) *imageInfo {
+	images = append([]imageInfo{*imgInfo}, images...)
+	slices.Reverse(images)
+
+	l := len(images)
+	return imgInfo.UpdatePixels(
+		func(x, y int, _ color.Color) color.Color {
+
+			for i, img := range images {
+				isLastImage := i == l-1
+				rgba := color.RGBAModel.Convert(img.img.At(x, y)).(color.RGBA)
+
+				if isColorNotTransparent(rgba) {
+					return rgba
+				}
+				if isColorFullTransparent(rgba) || isLastImage {
+					if isLastImage {
+						rgba.A = 255
+						return rgba
+					}
+					continue
+				}
+
+				// not last image and the alpha value is  0 < A < 255
+
+				if float64(rgba.A) > 255*threshold { // if the alpha is grater then threshold% then remove it from the color, or use the background color otherwise
+					rgba.A = 255
+					return rgba
+				}
+
+				continue
+			}
+
+			return color.RGBA{R: 255, G: 0, B: 0, A: 255} // red to catch any errors
+		},
+	)
+}
+
+// can not be 0
+func (imgInfo *imageInfo) RemoveAlphaOnThreshold(threshold float64) *imageInfo {
+	return imgInfo.UpdatePixels(
+		func(x, y int, c color.Color) color.Color {
+			rgba := color.RGBAModel.Convert(c).(color.RGBA)
+
+			if isColorFullTransparent(rgba) || isColorNotTransparent(rgba) {
+				return rgba
+			}
+
+			// the alpha value is  0 < A < 255
+			if float64(rgba.A) > 255*threshold {
+				rgba.A = 255
+				return rgba
+			}
+
+			rgba.A = 0
+			return rgba
+		},
+	)
+}
+
+func isColorFullTransparent(c color.Color) bool {
+	_, _, _, a := c.RGBA()
+	return a == 0
+}
+
+func isColorNotTransparent(c color.Color) bool {
+	_, _, _, a := c.RGBA()
+	return a == 255
+
+}
+
+func (imgInfo *imageInfo) RemoveAlpha() *imageInfo {
+	return imgInfo.UpdatePixels(
+		func(x, y int, c color.Color) color.Color {
+			rgba := color.RGBAModel.Convert(c).(color.RGBA)
+			rgba.A = 255
+			return rgba
+		},
+	)
+}
+
+func (imgInfo *imageInfo) TrimWhiteSpace() *imageInfo {
+	imgBounds := imgInfo.img.Bounds()
+	w := imgBounds.Dx()
+	h := imgBounds.Dy()
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	var topTrimCount, bottomTrimCount, leftTrimCount, rightTrimCount int
+	go func() {
+		defer wg.Done()
+		topTrimCount, bottomTrimCount = reportX(imgInfo.img)
+	}()
+	go func() {
+		defer wg.Done()
+		leftTrimCount, rightTrimCount = reportY(imgInfo.img)
+	}()
+
+	wg.Wait()
+
+	dst := image.NewRGBA(image.Rect(0, 0, w-rightTrimCount-leftTrimCount, h-bottomTrimCount-topTrimCount))
+	draw.Draw(dst, dst.Rect, imgInfo.img, image.Point{leftTrimCount, topTrimCount}, draw.Src)
+
+	imgInfo.img = dst
+	return imgInfo
+}
+
+func reportX(img image.Image) (top, bottom int) {
+	imgBounds := img.Bounds()
+	w := imgBounds.Dx()
+	h := imgBounds.Dy()
+
+	canTrimX := func(y int) bool {
+		for x := range w {
+			if isColorFullTransparent(img.At(x, y)) {
+				continue
+			}
+			return false
+		}
+		return true
+	}
+
+	var didTopStoped, didBottomStoped bool
+
+	half := int(math.Floor(float64(h) / 2))
+	y := 0
+	for {
+		if (didTopStoped && didBottomStoped) || (y >= half) {
+			break
+		}
+
+		if canTrimX(y) {
+			top++
+		} else {
+			didTopStoped = true
+		}
+
+		if canTrimX(h - y - 1) {
+			bottom++
+		} else {
+			didBottomStoped = true
+		}
+
+		y++
+	}
+
+	return top, bottom
+}
+
+func reportY(img image.Image) (left, right int) {
+	imgBounds := img.Bounds()
+	w := imgBounds.Dx()
+	h := imgBounds.Dy()
+
+	canTrimY := func(x int) bool {
+		for y := range h {
+			if isColorFullTransparent(img.At(x, y)) {
+				continue
+			}
+			return false
+		}
+		return true
+	}
+
+	var didLeftStoped, didRightStoped bool
+
+	half := int(math.Floor(float64(w) / 2))
+	x := 0
+	for {
+		if (didLeftStoped && didRightStoped) || (x >= half) {
+			break
+		}
+
+		if canTrimY(x) {
+			left++
+		} else {
+			didLeftStoped = true
+		}
+
+		if canTrimY(w - x - 1) {
+			right++
+		} else {
+			didRightStoped = true
+		}
+
+		x++
+	}
+
+	return left, right
 }
