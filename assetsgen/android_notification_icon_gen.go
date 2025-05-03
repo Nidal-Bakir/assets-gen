@@ -38,10 +38,14 @@ var androidNotificationIconDpis = []asset{
 	},
 }
 
-func GenerateNotificationIconForAndroid(imagePath string, folderName AndroidFolderName, outputFileName string) error {
+func GenerateNotificationIconForAndroid(imagePath string, folderName AndroidFolderName, outputFileName string, trimWhiteSpace bool) error {
 	imgInfo, err := genImageInfoForAndroid(imagePath, folderName, intentNotificationIcon)
 	if err != nil {
 		return err
+	}
+
+	if trimWhiteSpace {
+		imgInfo.TrimWhiteSpace()
 	}
 
 	if len(outputFileName) != 0 {

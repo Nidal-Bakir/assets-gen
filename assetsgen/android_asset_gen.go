@@ -2,11 +2,16 @@ package assetsgen
 
 import "math"
 
-func GenerateImageAssetsForAndroid(imagePath string, folderName AndroidFolderName) error {
+func GenerateImageAssetsForAndroid(imagePath string, folderName AndroidFolderName, trimWhiteSpace bool) error {
 	imgInfo, err := genImageInfoForAndroid(imagePath, folderName, intentAsset)
 	if err != nil {
 		return err
 	}
+
+	if trimWhiteSpace {
+		imgInfo.TrimWhiteSpace()
+	}
+
 	imgBounds := imgInfo.img.Bounds()
 	androidScreenDpis := generateAndroidScreenDpis(imgBounds.Dx(), imgBounds.Dy())
 

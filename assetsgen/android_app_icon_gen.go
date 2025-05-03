@@ -152,7 +152,6 @@ func GenerateAppIconForAndroid(imagePath string, outputFileName string, option A
 	}
 
 	bounds := logoImage.img.Bounds()
-	fmt.Println(bounds)
 	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * option.Padding
 	pad = math.Floor(pad)
 

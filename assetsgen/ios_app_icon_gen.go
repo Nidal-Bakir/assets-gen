@@ -195,12 +195,19 @@ type IosAppIconOptions struct {
 
 	// between [0..1] as percentage of the maximum axis (w,h) of the image
 	Padding float64
+
+	// removes the white spaces from the edges of the logo
+	TrimWhiteSpace bool
 }
 
 func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
 	logoImage, err := genImageInfoForIos(imagePath, intentAppIcon)
 	if err != nil {
 		return err
+	}
+
+	if option.TrimWhiteSpace {
+		logoImage.TrimWhiteSpace()
 	}
 
 	iosAppIconDpis := genIosAppIconDpis(logoImage.imageExt)

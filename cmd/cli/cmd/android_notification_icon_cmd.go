@@ -7,29 +7,31 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// android-notification-icon (ani)
 func AndroidNotificationIcon() *cli.Command {
 	var imagePath string
+	var outputName string
 	folderName := assetsgen.AndroidFolderMipmap
-
-	imageArg := imageArg(&imagePath)
-
-	folderNameFlag := androidFolderFlag(&folderName)
+	var trimWhiteSpace bool
 
 	action := func(ctx context.Context, c *cli.Command) error {
 		if err := assetsgen.IsFileExistsAndImage(imagePath); err != nil {
 			return err
 		}
-		return nil
+		return assetsgen.GenerateNotificationIconForAndroid(imagePath, folderName, outputName, trimWhiteSpace)
 	}
+
 	return &cli.Command{
 		Name:    "android-notification-icon",
 		Aliases: []string{"ani"},
 		Action:  action,
 		Arguments: []cli.Argument{
-			imageArg,
+			imageArg(&imagePath),
 		},
 		Flags: []cli.Flag{
-			folderNameFlag,
+			androidFolderFlag(&folderName),
+			outputNameFlagFn(&outputName),
+			trimWhiteSpaceFlagFn(&trimWhiteSpace),
 		},
 	}
 }

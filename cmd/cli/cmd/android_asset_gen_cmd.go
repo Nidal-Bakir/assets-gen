@@ -10,30 +10,28 @@ import (
 // android-asset-gen (aag)
 func AndroidAssetGen() *cli.Command {
 	var imagePath string
+	var trimWhiteSpace bool
+
 	folderName := assetsgen.AndroidFolderDrawable
-
-	imageArg := imageArg(&imagePath)
-
-	folderNameFlag := androidFolderFlag(&folderName)
 
 	action := func(ctx context.Context, c *cli.Command) error {
 		if err := assetsgen.IsFileExistsAndImage(imagePath); err != nil {
 			return err
 		}
-		return assetsgen.GenerateImageAssetsForAndroid(imagePath, folderName)
+		return assetsgen.GenerateImageAssetsForAndroid(imagePath, folderName, trimWhiteSpace)
 	}
 
 	return &cli.Command{
-		Name:      "android-asset-gen",
-		Aliases:   []string{"aag"},
-		Usage:     "generate asset image for all the DPIs: MDPI, HDPI, XHDPI, XXHDPI, XXXHDPI",
-		ArgsUsage: "the image path",
-		Action:    action,
+		Name:    "android-asset-gen",
+		Aliases: []string{"aag"},
+		Usage:   "Generate asset image for all the DPIs: MDPI, HDPI, XHDPI, XXHDPI, XXXHDPI",
+		Action:  action,
 		Arguments: []cli.Argument{
-			imageArg,
+			imageArg(&imagePath),
 		},
 		Flags: []cli.Flag{
-			folderNameFlag,
+			androidFolderFlag(&folderName),
+			trimWhiteSpaceFlagFn(&trimWhiteSpace),
 		},
 	}
 }
