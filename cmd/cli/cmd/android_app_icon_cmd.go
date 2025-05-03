@@ -21,6 +21,7 @@ func AndroidAppIcon() *cli.Command {
 	var gradientColors = []colorful.Color{{R: 1, G: 1, B: 1}, {R: 0, G: 0, B: 0}}
 	var gradientStops = []float64{0.0, 1.0}
 
+	var maskColor *colorful.Color
 	var trimWhiteSpace bool
 	var roundedCornerPercentRadius float64
 	var alphaThreshold float64
@@ -49,14 +50,23 @@ func AndroidAppIcon() *cli.Command {
 				BgIcon:                     bgIcon,
 				AlphaThreshold:             alphaThreshold,
 				TrimWhiteSpace:             trimWhiteSpace,
+				MaskColor:                  maskColor,
 			},
 		)
 	}
 
+	usageText := `android-app-icon [command [command options]] <image path>
+
+examples:
+	aai -bg linear-gradient -degree 90 -colors "#FF0000, #00FF00, #0000FF" -stops "0.0, 0.5, 1.0" "./ic_launcher.png"
+	aai -color "#0000FF" "./ic_launcher.png"
+	aai -o "app_icon" -p 0.1 --trim "./ic_launcher.png"`
+
 	return &cli.Command{
-		Name:    "android-app-icon",
-		Aliases: []string{"aai"},
-		Action:  action,
+		Name:      "android-app-icon",
+		Aliases:   []string{"aai"},
+		UsageText: usageText,
+		Action:    action,
 		Arguments: []cli.Argument{
 			imageArg,
 		},
@@ -73,6 +83,7 @@ func AndroidAppIcon() *cli.Command {
 			linearGradientDegreeFlagFn(&linearGradientDegree),
 			imageBgFlagFn(&bgImagePath),
 			trimWhiteSpaceFlagFn(&trimWhiteSpace),
+			maskColorFlagFn(func(c colorful.Color) { maskColor = &c }),
 		},
 	}
 }

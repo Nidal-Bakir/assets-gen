@@ -19,6 +19,7 @@ func IosAppIcon() *cli.Command {
 	var gradientColors = []colorful.Color{{R: 1, G: 1, B: 1}, {R: 0, G: 0, B: 0}}
 	var gradientStops = []float64{0.0, 1.0}
 
+	var maskColor *colorful.Color
 	var trimWhiteSpace bool
 	var alphaThreshold float64
 	var padding float64
@@ -40,6 +41,7 @@ func IosAppIcon() *cli.Command {
 				Padding:        padding,
 				AlphaThreshold: alphaThreshold,
 				TrimWhiteSpace: trimWhiteSpace,
+				MaskColor:      maskColor,
 			},
 		)
 	}
@@ -61,6 +63,7 @@ func IosAppIcon() *cli.Command {
 			linearGradientDegreeFlagFn(&linearGradientDegree),
 			imageBgFlagFn(&bgImagePath),
 			trimWhiteSpaceFlagFn(&trimWhiteSpace),
+			maskColorFlagFn(func(c colorful.Color) { maskColor = &c }),
 		},
 	}
 }

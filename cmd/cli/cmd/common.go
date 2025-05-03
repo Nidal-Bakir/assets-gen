@@ -112,6 +112,20 @@ func solidColorFlagFn(solidBgColor *colorful.Color) *cli.StringFlag {
 	}
 }
 
+func maskColorFlagFn(setMaskColorFn func(colorful.Color)) *cli.StringFlag {
+	return &cli.StringFlag{
+		Name:  "mask",
+		Usage: "Mask the logo colors",
+		Action: func(ctx context.Context, c *cli.Command, s string) error {
+			color, err := colorful.Hex(s)
+			if err == nil {
+				setMaskColorFn(color)
+			}
+			return err
+		},
+	}
+}
+
 func linearGradientDegreeFlagFn(degree *int) *cli.IntFlag {
 	return &cli.IntFlag{
 		Name:        "degree",

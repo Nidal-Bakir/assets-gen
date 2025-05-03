@@ -6,7 +6,11 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+
+	"github.com/lucasb-eyer/go-colorful"
 )
+
+const MAX_DPI_SIZE_FOR_IOS_APP_ICON = 1024
 
 func genIosAppIconDpis(ext string) []asset {
 	var iosAppIconDpis = []asset{
@@ -155,7 +159,7 @@ func genIosAppIconDpis(ext string) []asset {
 			Idiom:    "ios-marketing",
 			Scale:    "1x",
 			SizeName: "1024x1024",
-			Size:     1024,
+			Size:     MAX_DPI_SIZE_FOR_IOS_APP_ICON,
 		},
 	}
 
@@ -198,31 +202,24 @@ type IosAppIconOptions struct {
 
 	// removes the white spaces from the edges of the logo
 	TrimWhiteSpace bool
+
+	MaskColor *colorful.Color
 }
 
 func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
-	logoImage, err := genImageInfoForIos(imagePath, intentAppIcon)
+	logoImage, err := genLogoImageForIos(imagePath, option)
 	if err != nil {
 		return err
 	}
 
-	if option.TrimWhiteSpace {
-		logoImage.TrimWhiteSpace()
+	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
+	if err != nil {
+		return err
 	}
 
 	iosAppIconDpis := genIosAppIconDpis(logoImage.imageExt)
 
 	err = generateContentsJson(logoImage, iosAppIconDpis)
-	if err != nil {
-		return err
-	}
-
-	bounds := logoImage.img.Bounds()
-	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * option.Padding
-	pad = math.Floor(pad)
-	logoImage.SquareImageEmptyPixel().Padding(int(pad))
-
-	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
 	if err != nil {
 		return err
 	}
@@ -233,6 +230,33 @@ func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
 	}
 
 	return nil
+}
+
+func genLogoImageForIos(imagePath string, option IosAppIconOptions) (imageInfo, error) {
+	logoImage, err := genImageInfoForIos(imagePath, intentAppIcon)
+	if err != nil {
+		return logoImage, err
+	}
+
+	if option.TrimWhiteSpace {
+		logoImage.TrimWhiteSpace()
+	}
+
+	bounds := logoImage.img.Bounds()
+	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * option.Padding
+	pad = math.Floor(pad)
+
+	logoImage.
+		SquareImageWithEmptyPixels().
+		ResizeSquare(MAX_DPI_SIZE_FOR_IOS_APP_ICON). // for performance optimization
+		Padding(int(pad)).
+		ResizeSquare(MAX_DPI_SIZE_FOR_IOS_APP_ICON) // for performance optimization
+
+	if option.MaskColor != nil {
+		logoImage.ConvertNoneOpaqueToColor(*option.MaskColor)
+	}
+
+	return logoImage, nil
 }
 
 func generateIosAppIcon(logoImage imageInfo, bgImage imageInfo, alphaThreshold float64, iosAppIconDpis []asset) error {

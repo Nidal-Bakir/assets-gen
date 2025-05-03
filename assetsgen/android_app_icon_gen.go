@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 // make sure to update it if you update the dpis slices below
-const MAX_DPI_SIZE_FOR_APP_ICON = 432
+const MAX_DPI_SIZE_FOR_ANDROID_APP_ICON = 432
 
 // MDPI    - 108px
 // HDPI    - 162px
@@ -36,7 +38,7 @@ var androidAdaptiveAppIconLayerDpisV26 = []asset{
 	},
 	androidAppIconDpiAsset{
 		dpiName: "xxxhdpi",
-		size:    MAX_DPI_SIZE_FOR_APP_ICON,
+		size:    MAX_DPI_SIZE_FOR_ANDROID_APP_ICON,
 	},
 }
 
@@ -139,6 +141,8 @@ type AndroidAppIconOptions struct {
 
 	// removes the white spaces from the edges of the logo
 	TrimWhiteSpace bool
+
+	MaskColor *colorful.Color
 }
 
 func GenerateAppIconForAndroid(imagePath string, outputFileName string, option AndroidAppIconOptions) error {
@@ -156,11 +160,17 @@ func GenerateAppIconForAndroid(imagePath string, outputFileName string, option A
 	pad = math.Floor(pad)
 
 	logoImage.
-		SquareImageEmptyPixel().
-		ResizeSquare(MAX_DPI_SIZE_FOR_APP_ICON). // for performance optimization
+		SquareImageWithEmptyPixels().
+		ResizeSquare(MAX_DPI_SIZE_FOR_ANDROID_APP_ICON). // for performance optimization
 		Padding(int(pad)).
-		ResizeSquare(MAX_DPI_SIZE_FOR_APP_ICON). // for performance optimization
+		ResizeSquare(MAX_DPI_SIZE_FOR_ANDROID_APP_ICON). // for performance optimization
 		RemoveAlphaOnThreshold(option.AlphaThreshold)
+
+	fmt.Println("1: ", option.MaskColor)
+	if option.MaskColor != nil {
+		fmt.Println("2: ", option.MaskColor)
+		logoImage.ConvertNoneOpaqueToColor(*option.MaskColor)
+	}
 
 	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
 	if err != nil {

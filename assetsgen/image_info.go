@@ -151,7 +151,7 @@ func (imgInfo *imageInfo) Resize(w, h int) *imageInfo {
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) SquareImageEmptyPixel() *imageInfo {
+func (imgInfo *imageInfo) SquareImageWithEmptyPixels() *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w := imgBounds.Dx()
 	h := imgBounds.Dy()
@@ -180,16 +180,22 @@ func (imgInfo *imageInfo) Padding(padding int) *imageInfo {
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) ConvertColors(fn func(color.RGBA) color.RGBA) *imageInfo {
-	imgInfo.img = adjust.Apply(imgInfo.img, func(pxColor color.RGBA) color.RGBA {
-		return fn(pxColor)
-	})
+func (imgInfo *imageInfo) ConvertColors(fn func(color.Color) color.Color) *imageInfo {
+
+	imgInfo.img = adjust.Apply(
+		imgInfo.img,
+		func(pxColor color.RGBA) color.RGBA {
+			return color.RGBAModel.Convert(fn(pxColor)).(color.RGBA)
+		},
+	)
+
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) ConvertNoneOpaqueToColor(newColor color.RGBA) *imageInfo {
-	return imgInfo.ConvertColors(func(pxColor color.RGBA) color.RGBA {
-		if pxColor.A == 0 {
+func (imgInfo *imageInfo) ConvertNoneOpaqueToColor(newColor color.Color) *imageInfo {
+	return imgInfo.ConvertColors(func(pxColor color.Color) color.Color {
+		c := color.RGBAModel.Convert(pxColor).(color.RGBA)
+		if c.A == 0 {
 			return pxColor
 		}
 		return newColor
@@ -569,4 +575,24 @@ func reportY(img image.Image) (left, right int) {
 	}
 
 	return left, right
+}
+
+func (imgInfo *imageInfo) CropToSquare() *imageInfo {
+	imgBounds := imgInfo.img.Bounds()
+	w := imgBounds.Dx()
+	h := imgBounds.Dy()
+	if w == h {
+		return imgInfo
+	}
+
+	cx := w / 2
+	cy := h / 2
+
+	size := int(math.Min(float64(w), float64(h)))
+
+	dst := image.NewRGBA(image.Rect(0, 0, size, size))
+	draw.Draw(dst, dst.Rect, imgInfo.img, image.Point{cx - size/2, cy - size/2}, draw.Src)
+
+	imgInfo.img = dst
+	return imgInfo
 }

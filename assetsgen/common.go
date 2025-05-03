@@ -82,7 +82,7 @@ func (i imageBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
 
 	logoBounds := logo.img.Bounds()
 
-	bgImage.SquareImageEmptyPixel().
+	bgImage.CropToSquare().
 		Resize(logoBounds.Dx(), logoBounds.Dy()).
 		RemoveAlpha()
 
