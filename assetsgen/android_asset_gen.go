@@ -1,6 +1,10 @@
 package assetsgen
 
-import "math"
+import (
+	"fmt"
+	"math"
+	"path/filepath"
+)
 
 type AndroidImageAssetsOptions struct {
 	FolderName AndroidFolderName
@@ -10,17 +14,21 @@ type AndroidImageAssetsOptions struct {
 }
 
 func GenerateImageAssetsForAndroid(imagePath string, option AndroidImageAssetsOptions) error {
-	imgInfo, err := genImageInfoForAndroid(imagePath, option.FolderName, intentAsset)
+	imgInfo, err := newImageInfo(
+		imagePath,
+		filepath.Join(PlatformTypeAndroid, "res"),
+	)
 	if err != nil {
 		return err
 	}
+	defer imgInfo.rootDir.Close()
 
 	if option.TrimWhiteSpace {
 		imgInfo.TrimWhiteSpace()
 	}
 
 	imgBounds := imgInfo.img.Bounds()
-	androidScreenDpis := generateAndroidScreenDpis(imgBounds.Dx(), imgBounds.Dy())
+	androidScreenDpis := generateAndroidScreenDpis(imgBounds.Dx(), imgBounds.Dy(), string(option.FolderName))
 
 	err = imgInfo.
 		SplitPerAsset(androidScreenDpis).
@@ -38,7 +46,7 @@ func GenerateImageAssetsForAndroid(imagePath string, option AndroidImageAssetsOp
 // XHDPI   - 2.0x
 // XXHDPI  - 3.0x
 // XXXHDPI - 4.0x
-func generateAndroidScreenDpis(w, h int) []asset {
+func generateAndroidScreenDpis(w, h int, androidFolderName string) []asset {
 	androidScreenDpis := []asset{
 		androidScreenDpiAsset{
 			dpiName:     "mdpi",
@@ -74,6 +82,7 @@ func generateAndroidScreenDpis(w, h int) []asset {
 		screenDpi := v.(androidScreenDpiAsset)
 		screenDpi.baseW = int(math.Floor(baseW))
 		screenDpi.baseH = int(math.Floor(baseH))
+		screenDpi.dirName = androidFolderName
 		androidScreenDpis[i] = screenDpi
 	}
 
@@ -82,6 +91,7 @@ func generateAndroidScreenDpis(w, h int) []asset {
 
 type androidScreenDpiAsset struct {
 	dpiName     string
+	dirName     string
 	scaleFactor float64
 	baseW       int
 	baseH       int
@@ -99,4 +109,8 @@ func (a androidScreenDpiAsset) CalcSize(_, _ int) (int, int) {
 
 func (a androidScreenDpiAsset) CalcPadding(_, _ int) int {
 	return 0
+}
+
+func (a androidScreenDpiAsset) DirName() string {
+	return fmt.Sprint(a.dirName, "-", a.dpiName)
 }

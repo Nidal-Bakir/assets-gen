@@ -11,25 +11,50 @@ import (
 func AndroidAssetGen() *cli.Command {
 	var imagePath string
 	var trimWhiteSpace bool
+	var apply bool
 
 	folderName := assetsgen.AndroidFolderDrawable
 
 	action := func(ctx context.Context, c *cli.Command) error {
-		if err := assetsgen.IsFileExistsAndImage(imagePath); err != nil {
-			return err
+		if b := isPathExist(imagePath); !b {
+			if len(imagePath) == 0 {
+				return ErrPleaseSpecifyImagePath
+			}
+			return assetsgen.ErrFileNotFound
 		}
-		return assetsgen.GenerateImageAssetsForAndroid(
+
+		err := assetsgen.GenerateImageAssetsForAndroid(
 			imagePath, assetsgen.AndroidImageAssetsOptions{
 				FolderName:     folderName,
 				TrimWhiteSpace: trimWhiteSpace,
 			},
 		)
+		if err != nil {
+			return err
+		}
+
+		if apply {
+			err = applyAndroidAssetImage()
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
+
+	usageText := `android-asset-gen [command [command options]] <image path>
+
+examples:
+	aag "./clear_sky.png"
+	aag --folder-name drawable --trim "./clear_sky.png"
+	aag --apply "./clear_sky.png"`
 
 	return &cli.Command{
 		Name:    "android-asset-gen",
 		Aliases: []string{"aag"},
-		Usage:   "Generate asset image for all the DPIs: MDPI, HDPI, XHDPI, XXHDPI, XXXHDPI",
+		UsageText:   usageText,
+		Usage: "Generate Android asset image for all DPIs",
 		Action:  action,
 		Arguments: []cli.Argument{
 			imageArg(&imagePath),
@@ -37,6 +62,15 @@ func AndroidAssetGen() *cli.Command {
 		Flags: []cli.Flag{
 			androidFolderFlag(&folderName),
 			trimWhiteSpaceFlagFn(&trimWhiteSpace),
+			applyFlagFn(&apply),
 		},
 	}
+}
+
+func applyAndroidAssetImage() error {
+	err := moveAndroidOutFiles()
+	if err != nil {
+		return err
+	}
+	return nil
 }

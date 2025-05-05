@@ -3,39 +3,49 @@ package assetsgen
 import (
 	"fmt"
 	"image/color"
+	"path/filepath"
 )
 
-// MDPI    - 24px
-// HDPI    - 36px
-// XHDPI   - 48px
-// XXHDPI  - 72px
-// XXXHDPI - 96px
-var androidNotificationIconDpis = []asset{
-	androidNotificationIconDpiAsset{
-		dpiName: "mdpi",
-		width:   24,
-		height:  24,
-	},
-	androidNotificationIconDpiAsset{
-		dpiName: "hdpi",
-		width:   36,
-		height:  36,
-	},
-	androidNotificationIconDpiAsset{
-		dpiName: "xhdpi",
-		width:   48,
-		height:  48,
-	},
-	androidNotificationIconDpiAsset{
-		dpiName: "xxhdpi",
-		width:   72,
-		height:  72,
-	},
-	androidNotificationIconDpiAsset{
-		dpiName: "xxxhdpi",
-		width:   96,
-		height:  96,
-	},
+func androidNotificationIconDpis(androidFolderName string) []asset {
+	// MDPI    - 24px
+	// HDPI    - 36px
+	// XHDPI   - 48px
+	// XXHDPI  - 72px
+	// XXXHDPI - 96px
+	var dpis = []asset{
+		androidNotificationIconDpiAsset{
+			dpiName: "mdpi",
+			width:   24,
+			height:  24,
+		},
+		androidNotificationIconDpiAsset{
+			dpiName: "hdpi",
+			width:   36,
+			height:  36,
+		},
+		androidNotificationIconDpiAsset{
+			dpiName: "xhdpi",
+			width:   48,
+			height:  48,
+		},
+		androidNotificationIconDpiAsset{
+			dpiName: "xxhdpi",
+			width:   72,
+			height:  72,
+		},
+		androidNotificationIconDpiAsset{
+			dpiName: "xxxhdpi",
+			width:   96,
+			height:  96,
+		},
+	}
+
+	for i, v := range dpis {
+		dpi := v.(androidNotificationIconDpiAsset)
+		dpi.dirName = fmt.Sprint(dpi.dirName, androidFolderName)
+		dpis[i] = dpi
+	}
+	return dpis
 }
 
 type AndroidNotificationIconOptions struct {
@@ -51,21 +61,21 @@ type AndroidNotificationIconOptions struct {
 }
 
 func GenerateNotificationIconForAndroid(imagePath string, option AndroidNotificationIconOptions) error {
-	imgInfo, err := genImageInfoForAndroid(imagePath, option.FolderName, intentNotificationIcon)
+	logoImage, err := newImageInfo(
+		imagePath,
+		filepath.Join(PlatformTypeAndroid, "res"),
+	)
 	if err != nil {
 		return err
 	}
+	defer logoImage.rootDir.Close()
 
-	if len(option.OutputFileName) != 0 {
-		option.OutputFileName = fmt.Sprint(option.OutputFileName, imgInfo.imageExt)
-	}
-
-	err = imgInfo.
-		If(option.TrimWhiteSpace, imgInfo.TrimWhiteSpace).
-		If(option.AlphaThreshold >= 0, func() *imageInfo { return imgInfo.RemoveAlphaOnThreshold(option.AlphaThreshold) }).
+	err = logoImage.
+		If(option.TrimWhiteSpace, logoImage.TrimWhiteSpace).
+		If(option.AlphaThreshold >= 0, func() *imageInfo { return logoImage.RemoveAlphaOnThreshold(option.AlphaThreshold) }).
 		ConvertNoneOpaqueToColor(color.RGBA{R: 255, G: 255, B: 255, A: 255}).
 		SquareImageWithEmptyPixels().
-		SplitPerAsset(androidNotificationIconDpis).
+		SplitPerAsset(androidNotificationIconDpis(string(option.FolderName))).
 		ResizeForAssets().
 		SaveWithCustomName(option.OutputFileName)
 
@@ -78,6 +88,7 @@ func GenerateNotificationIconForAndroid(imagePath string, option AndroidNotifica
 
 type androidNotificationIconDpiAsset struct {
 	dpiName string
+	dirName string
 	width   int
 	height  int
 }
@@ -92,4 +103,8 @@ func (a androidNotificationIconDpiAsset) CalcSize(_, _ int) (int, int) {
 
 func (a androidNotificationIconDpiAsset) CalcPadding(_, _ int) int {
 	return 0
+}
+
+func (a androidNotificationIconDpiAsset) DirName() string {
+	return fmt.Sprint(a.dirName, "-", a.dpiName)
 }

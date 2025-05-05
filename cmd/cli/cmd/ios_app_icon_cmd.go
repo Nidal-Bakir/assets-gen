@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"github.com/Nidal-Bakir/assets-gen/assetsgen"
 	"github.com/lucasb-eyer/go-colorful"
@@ -23,10 +25,14 @@ func IosAppIcon() *cli.Command {
 	var trimWhiteSpace bool
 	var alphaThreshold float64
 	var padding float64
+	var apply bool
 
 	action := func(ctx context.Context, c *cli.Command) error {
-		if err := assetsgen.IsFileExistsAndImage(imagePath); err != nil {
-			return err
+		if b := isPathExist(imagePath); !b {
+			if len(imagePath) == 0 {
+				return ErrPleaseSpecifyImagePath
+			}
+			return assetsgen.ErrFileNotFound
 		}
 
 		bgIcon, err := getBgIcon(bgType, gradientColors, gradientStops, solidColor, linearGradientDegree, bgImagePath)
@@ -34,7 +40,7 @@ func IosAppIcon() *cli.Command {
 			return err
 		}
 
-		return assetsgen.GenerateAppIconForIos(
+		err = assetsgen.GenerateAppIconForIos(
 			imagePath,
 			assetsgen.IosAppIconOptions{
 				BgIcon:         bgIcon,
@@ -44,12 +50,34 @@ func IosAppIcon() *cli.Command {
 				MaskColor:      maskColor,
 			},
 		)
+		if err != nil {
+			return err
+		}
+
+		if apply {
+			err = applyIosAppIcon()
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 
+	usageText := `ios-app-icon [command [command options]] <image path>
+
+examples:
+	iai "./app_icon.png"
+	iai -bg linear-gradient --degree 90 --colors "#FF0000, #00FF00, #0000FF" --stops "0.0, 0.5, 1.0" "./app_icon.png"
+	iai --color "#0000FF" "./app_icon.png"
+	iai --apply -p 0.1 --trim "./app_icon.png"`
+
 	return &cli.Command{
-		Name:    "ios-app-icon",
-		Aliases: []string{"iai"},
-		Action:  action,
+		Name:      "ios-app-icon",
+		Aliases:   []string{"iai"},
+		UsageText: usageText,
+		Usage:     "Generate IOS app icon",
+		Action:    action,
 		Arguments: []cli.Argument{
 			imageArg(&imagePath),
 		},
@@ -64,6 +92,42 @@ func IosAppIcon() *cli.Command {
 			imageBgFlagFn(&bgImagePath),
 			trimWhiteSpaceFlagFn(&trimWhiteSpace),
 			maskColorFlagFn(&maskColor),
+			applyFlagFn(&apply),
 		},
 	}
+}
+
+func applyIosAppIcon() error {
+	err := moveIosOutFiles()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func moveIosOutFiles() error {
+	xcassetsRootDir, err := getIosXcassetsAsRoot()
+	if err != nil {
+		return err
+	}
+	xcassetsRootDir.Close()
+	assetsOutRootDir, err := assetsgen.GetRootDir()
+	if err != nil {
+		return err
+	}
+	assetsOutRootDir.Close()
+
+	src := filepath.Join(assetsOutRootDir.Name(), assetsgen.PlatformTypeIos, "Assets.xcassets", "AppIcon.appiconset")
+	dst := filepath.Join(xcassetsRootDir.Name(), "AppIcon.appiconset")
+	err = moveFilesR(src, dst)
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll(assetsOutRootDir.Name())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

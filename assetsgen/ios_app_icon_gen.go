@@ -2,8 +2,6 @@ package assetsgen
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/lucasb-eyer/go-colorful"
@@ -11,164 +9,154 @@ import (
 
 const MAX_DPI_SIZE_FOR_IOS_APP_ICON = 1024
 
-func genIosAppIconDpis(ext string) []asset {
-	var iosAppIconDpis = []asset{
-		iosAppIconDpiAsset{
-			Filename: "AppIcon@2x",
-			Idiom:    "iphone",
-			Scale:    "2x",
-			SizeName: "60x60",
-			Size:     120,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon@3x",
-			Idiom:    "iphone",
-			Scale:    "3x",
-			SizeName: "60x60",
-			Size:     180,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon~ipad",
-			Idiom:    "ipad",
-			Scale:    "1x",
-			SizeName: "76x76",
-			Size:     76,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon@2x~ipad",
-			Idiom:    "ipad",
-			Scale:    "2x",
-			SizeName: "76x76",
-			Size:     152,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-83.5@2x~ipad",
-			Idiom:    "ipad",
-			Scale:    "2x",
-			SizeName: "83.5x83.5",
-			Size:     167,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-40@2x",
-			Idiom:    "iphone",
-			Scale:    "2x",
-			SizeName: "40x40",
-			Size:     80,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-40@3x",
-			Idiom:    "iphone",
-			Scale:    "3x",
-			SizeName: "40x40",
-			Size:     120,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-40~ipad",
-			Idiom:    "ipad",
-			Scale:    "1x",
-			SizeName: "40x40",
-			Size:     40,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-40@2x~ipad",
-			Idiom:    "ipad",
-			Scale:    "2x",
-			SizeName: "40x40",
-			Size:     80,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-20@2x",
-			Idiom:    "iphone",
-			Scale:    "2x",
-			SizeName: "20x20",
-			Size:     40,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-20@3x",
-			Idiom:    "iphone",
-			Scale:    "3x",
-			SizeName: "20x20",
-			Size:     60,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-20~ipad",
-			Idiom:    "ipad",
-			Scale:    "1x",
-			SizeName: "20x20",
-			Size:     20,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-20@2x~ipad",
-			Idiom:    "ipad",
-			Scale:    "2x",
-			SizeName: "20x20",
-			Size:     40,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-29",
-			Idiom:    "iphone",
-			Scale:    "1x",
-			SizeName: "29x29",
-			Size:     29,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-29@2x",
-			Idiom:    "iphone",
-			Scale:    "2x",
-			SizeName: "29x29",
-			Size:     58,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-29@3x",
-			Idiom:    "iphone",
-			Scale:    "3x",
-			SizeName: "29x29",
-			Size:     87,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-29~ipad",
-			Idiom:    "ipad",
-			Scale:    "1x",
-			SizeName: "29x29",
-			Size:     29,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-29@2x~ipad",
-			Idiom:    "ipad",
-			Scale:    "2x",
-			SizeName: "29x29",
-			Size:     58,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-60@2x~car",
-			Idiom:    "car",
-			Scale:    "2x",
-			SizeName: "60x60",
-			Size:     120,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon-60@3x~car",
-			Idiom:    "car",
-			Scale:    "3x",
-			SizeName: "60x60",
-			Size:     180,
-		},
-		iosAppIconDpiAsset{
-			Filename: "AppIcon~ios-marketing",
-			Idiom:    "ios-marketing",
-			Scale:    "1x",
-			SizeName: "1024x1024",
-			Size:     MAX_DPI_SIZE_FOR_IOS_APP_ICON,
-		},
-	}
-
-	for i, v := range iosAppIconDpis {
-		iosDpi := v.(iosAppIconDpiAsset)
-		iosDpi.Filename = fmt.Sprint(iosDpi.Filename, ext)
-		iosAppIconDpis[i] = iosDpi
-	}
-
-	return iosAppIconDpis
+var iosAppIconDpis = []asset{
+	iosAppIconDpiAsset{
+		Filename: "AppIcon@2x",
+		Idiom:    "iphone",
+		Scale:    "2x",
+		SizeName: "60x60",
+		Size:     120,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon@3x",
+		Idiom:    "iphone",
+		Scale:    "3x",
+		SizeName: "60x60",
+		Size:     180,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon~ipad",
+		Idiom:    "ipad",
+		Scale:    "1x",
+		SizeName: "76x76",
+		Size:     76,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon@2x~ipad",
+		Idiom:    "ipad",
+		Scale:    "2x",
+		SizeName: "76x76",
+		Size:     152,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-83.5@2x~ipad",
+		Idiom:    "ipad",
+		Scale:    "2x",
+		SizeName: "83.5x83.5",
+		Size:     167,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-40@2x",
+		Idiom:    "iphone",
+		Scale:    "2x",
+		SizeName: "40x40",
+		Size:     80,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-40@3x",
+		Idiom:    "iphone",
+		Scale:    "3x",
+		SizeName: "40x40",
+		Size:     120,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-40~ipad",
+		Idiom:    "ipad",
+		Scale:    "1x",
+		SizeName: "40x40",
+		Size:     40,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-40@2x~ipad",
+		Idiom:    "ipad",
+		Scale:    "2x",
+		SizeName: "40x40",
+		Size:     80,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-20@2x",
+		Idiom:    "iphone",
+		Scale:    "2x",
+		SizeName: "20x20",
+		Size:     40,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-20@3x",
+		Idiom:    "iphone",
+		Scale:    "3x",
+		SizeName: "20x20",
+		Size:     60,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-20~ipad",
+		Idiom:    "ipad",
+		Scale:    "1x",
+		SizeName: "20x20",
+		Size:     20,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-20@2x~ipad",
+		Idiom:    "ipad",
+		Scale:    "2x",
+		SizeName: "20x20",
+		Size:     40,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-29",
+		Idiom:    "iphone",
+		Scale:    "1x",
+		SizeName: "29x29",
+		Size:     29,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-29@2x",
+		Idiom:    "iphone",
+		Scale:    "2x",
+		SizeName: "29x29",
+		Size:     58,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-29@3x",
+		Idiom:    "iphone",
+		Scale:    "3x",
+		SizeName: "29x29",
+		Size:     87,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-29~ipad",
+		Idiom:    "ipad",
+		Scale:    "1x",
+		SizeName: "29x29",
+		Size:     29,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-29@2x~ipad",
+		Idiom:    "ipad",
+		Scale:    "2x",
+		SizeName: "29x29",
+		Size:     58,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-60@2x~car",
+		Idiom:    "car",
+		Scale:    "2x",
+		SizeName: "60x60",
+		Size:     120,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon-60@3x~car",
+		Idiom:    "car",
+		Scale:    "3x",
+		SizeName: "60x60",
+		Size:     180,
+	},
+	iosAppIconDpiAsset{
+		Filename: "AppIcon~ios-marketing",
+		Idiom:    "ios-marketing",
+		Scale:    "1x",
+		SizeName: "1024x1024",
+		Size:     MAX_DPI_SIZE_FOR_IOS_APP_ICON,
+	},
 }
 
 type iosAppIconDpiAsset struct {
@@ -186,8 +174,13 @@ func (a iosAppIconDpiAsset) Name() string {
 func (a iosAppIconDpiAsset) CalcSize(_, _ int) (int, int) {
 	return a.Size, a.Size
 }
+
 func (a iosAppIconDpiAsset) CalcPadding(_, _ int) int {
 	return 0
+}
+
+func (a iosAppIconDpiAsset) DirName() string {
+	return ""
 }
 
 type IosAppIconOptions struct {
@@ -210,13 +203,12 @@ func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
 	if err != nil {
 		return err
 	}
+	defer logoImage.rootDir.Close()
 
 	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
 	if err != nil {
 		return err
 	}
-
-	iosAppIconDpis := genIosAppIconDpis(logoImage.imageExt)
 
 	err = generateContentsJson(logoImage, iosAppIconDpis)
 	if err != nil {
@@ -229,10 +221,14 @@ func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
 	}
 
 	return nil
+
 }
 
 func genLogoImageForIos(imagePath string, option IosAppIconOptions) (imageInfo, error) {
-	logoImage, err := genImageInfoForIos(imagePath, intentAppIcon)
+	logoImage, err := newImageInfo(
+		imagePath,
+		filepath.Join(PlatformTypeIos, "Assets.xcassets", "AppIcon.appiconset"),
+	)
 	if err != nil {
 		return logoImage, err
 	}
@@ -293,13 +289,7 @@ func generateContentsJson(logoImage imageInfo, dpis []asset) error {
 		return err
 	}
 
-	dir, name := logoImage.genImageLocation("", "Contents.json")
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	file, err := os.Create(filepath.Join(dir, name))
+	file, err := logoImage.rootDir.Create(filepath.Join(logoImage.saveDirPath, "Contents.json"))
 	if err != nil {
 		return err
 	}

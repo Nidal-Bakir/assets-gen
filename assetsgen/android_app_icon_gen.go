@@ -13,102 +13,128 @@ import (
 // make sure to update it if you update the dpis slices below
 const MAX_DPI_SIZE_FOR_ANDROID_APP_ICON = 432
 
-// MDPI    - 108px
-// HDPI    - 162px
-// XHDPI   - 216px
-// XXHDPI  - 324px
-// XXXHDPI - 432px
-var androidAdaptiveAppIconLayerDpisV26 = []asset{
-	androidAppIconDpiAsset{
-		dpiName: "mdpi",
-		size:    108,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "hdpi",
-		size:    162,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "xhdpi",
-		size:    216,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "xxhdpi",
-		size:    324,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "xxxhdpi",
-		size:    MAX_DPI_SIZE_FOR_ANDROID_APP_ICON,
-	},
+func androidAdaptiveAppIconLayerDpisV26(androidFolderName string) []asset {
+	// MDPI    - 108px
+	// HDPI    - 162px
+	// XHDPI   - 216px
+	// XXHDPI  - 324px
+	// XXXHDPI - 432px
+	var dpis = []asset{
+		androidAppIconDpiAsset{
+			dpiName: "mdpi",
+			size:    108,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "hdpi",
+			size:    162,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xhdpi",
+			size:    216,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xxhdpi",
+			size:    324,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xxxhdpi",
+			size:    MAX_DPI_SIZE_FOR_ANDROID_APP_ICON,
+		},
+	}
+	for i, v := range dpis {
+		dpi := v.(androidAppIconDpiAsset)
+		dpi.dirName = fmt.Sprint(dpi.dirName, androidFolderName)
+		dpis[i] = dpi
+	}
+	return dpis
 }
 
-// MDPI    - 66px
-// HDPI    - 99px
-// XHDPI   - 132px
-// XXHDPI  - 198px
-// XXXHDPI - 264px
-var androidAdaptiveAppIconLogoDpisV26 = []asset{
-	androidAppIconDpiAsset{
-		dpiName: "mdpi",
-		size:    66,
-		padding: 24,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "hdpi",
-		size:    99,
-		padding: 36,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "xhdpi",
-		size:    132,
-		padding: 48,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "xxhdpi",
-		size:    198,
-		padding: 72,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "xxxhdpi",
-		size:    264,
-		padding: 96,
-	},
+func androidAdaptiveAppIconLogoDpisV26(androidFolderName string) []asset {
+	// MDPI    - 66px
+	// HDPI    - 99px
+	// XHDPI   - 132px
+	// XXHDPI  - 198px
+	// XXXHDPI - 264px
+	var dpis = []asset{
+		androidAppIconDpiAsset{
+			dpiName: "mdpi",
+			size:    66,
+			padding: 24,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "hdpi",
+			size:    99,
+			padding: 36,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xhdpi",
+			size:    132,
+			padding: 48,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xxhdpi",
+			size:    198,
+			padding: 72,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xxxhdpi",
+			size:    264,
+			padding: 96,
+		},
+	}
+	for i, v := range dpis {
+		dpi := v.(androidAppIconDpiAsset)
+		dpi.dirName = fmt.Sprint(dpi.dirName, androidFolderName)
+		dpis[i] = dpi
+	}
+	return dpis
 }
 
-// MDPI    - 48px
-// HDPI    - 72px
-// XHDPI   - 96px
-// XXHDPI  - 144px
-// XXXHDPI - 192px
-var androidAppIconDpisLegacy = []asset{
-	androidAppIconDpiAsset{
-		dpiName: "mdpi",
-		size:    48,
-		padding: 4,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "hdpi",
-		size:    72,
-		padding: 6,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "xhdpi",
-		size:    96,
-		padding: 8,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "xxhdpi",
-		size:    144,
-		padding: 12,
-	},
-	androidAppIconDpiAsset{
-		dpiName: "xxxhdpi",
-		size:    192,
-		padding: 24,
-	},
+func androidAppIconDpisLegacy(androidFolderName string) []asset {
+	// MDPI    - 48px
+	// HDPI    - 72px
+	// XHDPI   - 96px
+	// XXHDPI  - 144px
+	// XXXHDPI - 192px
+	var dpis = []asset{
+		androidAppIconDpiAsset{
+			dpiName: "mdpi",
+			size:    48,
+			padding: 4,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "hdpi",
+			size:    72,
+			padding: 6,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xhdpi",
+			size:    96,
+			padding: 8,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xxhdpi",
+			size:    144,
+			padding: 12,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xxxhdpi",
+			size:    192,
+			padding: 24,
+		},
+	}
+
+	for i, v := range dpis {
+		dpi := v.(androidAppIconDpiAsset)
+		dpi.dirName = fmt.Sprint(dpi.dirName, androidFolderName)
+		dpis[i] = dpi
+	}
+	return dpis
 }
 
 type androidAppIconDpiAsset struct {
 	dpiName string
+	dirName string
 	size    int
 	padding int
 }
@@ -123,6 +149,10 @@ func (a androidAppIconDpiAsset) CalcSize(_, _ int) (int, int) {
 
 func (a androidAppIconDpiAsset) CalcPadding(_, _ int) int {
 	return a.padding
+}
+
+func (a androidAppIconDpiAsset) DirName() string {
+	return fmt.Sprint(a.dirName, "-", a.dpiName)
 }
 
 type AndroidAppIconOptions struct {
@@ -147,10 +177,14 @@ type AndroidAppIconOptions struct {
 }
 
 func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) error {
-	logoImage, err := genImageInfoForAndroid(imagePath, option.FolderName, intentAppIcon)
+	logoImage, err := newImageInfo(
+		imagePath,
+		filepath.Join(PlatformTypeAndroid, "res"),
+	)
 	if err != nil {
 		return err
 	}
+	defer logoImage.rootDir.Close()
 
 	pad := calPadding(logoImage.img, option.Padding)
 
@@ -176,12 +210,25 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 
 	go func() {
 		defer w.Done()
-		legacyAppIconError = generateLegacyAppIcon(logoImage, bgImage, option.RoundedCornerPercentRadius, option.AlphaThreshold, androidAppIconDpisLegacy, option.OutputFileName)
+		legacyAppIconError = generateLegacyAppIcon(
+			logoImage,
+			bgImage,
+			option.RoundedCornerPercentRadius,
+			option.AlphaThreshold,
+			androidAppIconDpisLegacy(string(option.FolderName)),
+			option.OutputFileName,
+		)
 	}()
 
 	go func() {
 		defer w.Done()
-		adaptiveAppIconError = generateAdaptiveAppIcon(logoImage, bgImage, androidAdaptiveAppIconLayerDpisV26, androidAdaptiveAppIconLogoDpisV26, option.OutputFileName)
+		adaptiveAppIconError = generateAdaptiveAppIcon(
+			logoImage,
+			bgImage,
+			androidAdaptiveAppIconLayerDpisV26(string(option.FolderName)),
+			androidAdaptiveAppIconLogoDpisV26(string(option.FolderName)),
+			option.OutputFileName,
+		)
 	}()
 
 	w.Wait()
@@ -197,10 +244,6 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 }
 
 func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerPercentRadius float64, AlphaThreshold float64, androidAppIconDpisLegacy []asset, outputFileName string) error {
-	if len(outputFileName) != 0 {
-		outputFileName = fmt.Sprint(outputFileName, logoImage.imageExt)
-	}
-
 	err := bgImage.
 		StackWithNoAlpha(AlphaThreshold, logoImage).
 		ClipRRect(roundedCornerPercentRadius).
@@ -231,14 +274,14 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 		ResizeForAssets()
 
 	shouldUseAssetName := len(outputFileName) == 0
-	foregroundName := fmt.Sprint(outputFileName, "_foreground", logoImage.imageExt)
-	monochromeName := fmt.Sprint(outputFileName, "_monochrome", logoImage.imageExt)
-	backgroundName := fmt.Sprint(outputFileName, "_background", logoImage.imageExt)
+	foregroundName := fmt.Sprint(outputFileName, "_foreground")
+	monochromeName := fmt.Sprint(outputFileName, "_monochrome")
+	backgroundName := fmt.Sprint(outputFileName, "_background")
 
 	for _, logo := range *logos {
 		if shouldUseAssetName {
-			foregroundName = fmt.Sprint(logo.imgNameWithoutExt, "_foreground", logoImage.imageExt)
-			monochromeName = fmt.Sprint(logo.imgNameWithoutExt, "_monochrome", logoImage.imageExt)
+			foregroundName = fmt.Sprint(logo.imgNameWithoutExt, "_foreground")
+			monochromeName = fmt.Sprint(logo.imgNameWithoutExt, "_monochrome")
 		}
 
 		err := logo.SaveWithCustomName(foregroundName)
@@ -258,7 +301,7 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 
 	for _, bg := range *bgs {
 		if shouldUseAssetName {
-			backgroundName = fmt.Sprint(bg.imgNameWithoutExt, "_background", bg.imageExt)
+			backgroundName = fmt.Sprint(bg.imgNameWithoutExt, "_background")
 		}
 		err := bg.SaveWithCustomName(backgroundName)
 		if err != nil {
@@ -272,26 +315,19 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 func generateIcLauncherXml(logoImage imageInfo, outputFileName string) error {
 	sb := strings.Builder{}
 
-	var name string
-	if len(outputFileName) == 0 {
-		name = logoImage.imgNameWithoutExt
-	} else {
-		name = outputFileName
-	}
-
 	sb.WriteString(`<?xml version="1.0" encoding="utf-8" ?>`)
 	sb.WriteRune('\n')
 
 	sb.WriteString(`<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">`)
 	sb.WriteRune('\n')
 
-	sb.WriteString(fmt.Sprint(`  <background android:drawable="@mipmap/`, name, `_background" />`))
+	sb.WriteString(fmt.Sprint(`  <background android:drawable="@mipmap/`, outputFileName, `_background" />`))
 	sb.WriteRune('\n')
 
-	sb.WriteString(fmt.Sprint(`  <foreground android:drawable="@mipmap/`, name, `_foreground" />`))
+	sb.WriteString(fmt.Sprint(`  <foreground android:drawable="@mipmap/`, outputFileName, `_foreground" />`))
 	sb.WriteRune('\n')
 
-	sb.WriteString(fmt.Sprint(`  <monochrome android:drawable="@mipmap/`, name, `_monochrome" />`))
+	sb.WriteString(fmt.Sprint(`  <monochrome android:drawable="@mipmap/`, outputFileName, `_monochrome" />`))
 	sb.WriteRune('\n')
 
 	sb.WriteString(`</adaptive-icon>`)
@@ -299,13 +335,13 @@ func generateIcLauncherXml(logoImage imageInfo, outputFileName string) error {
 
 	ic_launcher_xml := sb.String()
 
-	dir, name := logoImage.genImageLocation("anydpi-v26", "ic_launcher.xml")
-	err := os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
+	dir := filepath.Join(logoImage.saveDirPath, "anydpi-v26")
+	err := logoImage.rootDir.Mkdir(dir, os.ModePerm)
+	if err != nil && !os.IsExist(err) {
 		return err
 	}
 
-	file, err := os.Create(filepath.Join(dir, name))
+	file, err := logoImage.rootDir.Create(filepath.Join(dir, "ic_launcher.xml"))
 	if err != nil {
 		return err
 	}

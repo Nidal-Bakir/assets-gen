@@ -5,6 +5,7 @@ import (
 	"image"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/anthonynsimon/bild/imgio"
@@ -16,27 +17,20 @@ var (
 	ErrFileNotFound        = errors.New("file not found")
 )
 
-type platformType string
+type platformType = string
 
 const (
-	platformTypeAndroid platformType = "android"
-	platformTypeIos     platformType = "ios"
+	PlatformTypeAndroid platformType = "android"
+	PlatformTypeIos     platformType = "ios"
 
-	rootFolderName string = "assets_gen_out"
-)
-
-type intention string
-
-const (
-	intentAppIcon          intention = "app_icon"
-	intentNotificationIcon intention = "notification_icon"
-	intentAsset            intention = "asset"
+	RootFolderName string = "assets_gen_out"
 )
 
 type asset interface {
 	Name() string
 	CalcSize(w, h int) (int, int)
 	CalcPadding(w, h int) int
+	DirName() string
 }
 
 type BackgroundIcon interface {
@@ -114,7 +108,7 @@ func NewSolidColorBackground(c colorful.Color) BackgroundIcon {
 func IsFileExistsAndImage(filePath string) error {
 	info, err := os.Stat(filePath)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if os.IsNotExist(err) {
 			return ErrFileNotFound
 		}
 		return err
@@ -135,4 +129,35 @@ func calPadding(img image.Image, padding float64) int {
 	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * padding
 	pad = math.Floor(pad)
 	return int(pad)
+}
+
+func GetRootDir() (*os.Root, error) {
+	p := filepath.Join("./", RootFolderName)
+	err := os.MkdirAll(p, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+	rootDir, err := os.OpenRoot(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return rootDir, nil
+}
+
+func saveImage(root *os.Root, filename string, img image.Image, encoder imgio.Encoder) error {
+	f, err := root.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return encoder(f, img)
+}
+
+func splitPath(path string) []string {
+	dir, last := filepath.Split(path)
+	if dir == "" {
+		return []string{last}
+	}
+	return append(splitPath(filepath.Clean(dir)), last)
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -14,13 +16,16 @@ import (
 )
 
 var (
-	ErrInvalidBgType                   = errors.New("invalid bg-type")
-	ErrInvalidAndroidFolder            = errors.New("invalid android folder name. possible values (mipmap, drawable)")
-	ErrInvalidValueRange               = errors.New("invalid value range")
-	ErrPaddingOutOfRange               = errors.New("padding should be between 0..1")
-	ErrAlphaThresholdOutOfRange        = errors.New("threshold should be between 0..1 or -1 to disable")
-	ErrInvalidColor                    = errors.New("invalid color. e.g of valid colors #0000FF, #FFFFFF")
-	ErrColorsAndStopsLengthDidNotMatch = errors.New("the length fo colors should match the length of stops")
+	ErrInvalidBgType                        = errors.New("invalid bg-type")
+	ErrInvalidAndroidFolder                 = errors.New("invalid android folder name. possible values (mipmap, drawable)")
+	ErrInvalidValueRange                    = errors.New("invalid value range")
+	ErrPaddingOutOfRange                    = errors.New("padding should be between 0..1")
+	ErrAlphaThresholdOutOfRange             = errors.New("threshold should be between 0..1 or -1 to disable")
+	ErrInvalidColor                         = errors.New("invalid color. e.g of valid colors #0000FF, #FFFFFF")
+	ErrColorsAndStopsLengthDidNotMatch      = errors.New("the length fo colors should match the length of stops")
+	ErrDidNotFindTheResAndroidFolder        = errors.New("did not find the res android folder")
+	ErrDidNotFindTheAssetsXcassetsIosFolder = errors.New("did not find the Assets.xcassets ios folder")
+	ErrPleaseSpecifyImagePath               = errors.New("please specify image path")
 )
 
 func androidFolderFlag(folderName *assetsgen.AndroidFolderName) *cli.StringFlag {
@@ -28,7 +33,7 @@ func androidFolderFlag(folderName *assetsgen.AndroidFolderName) *cli.StringFlag 
 		Name:    "folder-name",
 		Aliases: []string{"f"},
 		Value:   string(*folderName),
-		Usage:   "whether to target mipmap or drawable folder",
+		Usage:   "Whether to target mipmap or drawable folder",
 		Action: func(ctx context.Context, c *cli.Command, s string) error {
 			switch s {
 			case string(assetsgen.AndroidFolderDrawable):
@@ -60,23 +65,24 @@ func trimWhiteSpaceFlagFn(trimWhiteSpace *bool) *cli.BoolFlag {
 	}
 }
 
-func outputNameFlagFn(outputName *string) *cli.StringFlag {
+func outputNameFlagFn(outputName *string, defaultVal string) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:        "output",
 		Aliases:     []string{"o"},
-		Value:       "",
+		Value:       defaultVal,
 		Usage:       "Set a custom output name for the generated files. Only name without extension.",
-		DefaultText: "The default is to use the image name as output name",
 		Destination: outputName,
 	}
 }
+
+var bgTypes = []string{"solid-color", "linear-gradient", "radial-gradient", "image"}
 
 func bgTypeFlagFn(bgType *string) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:    "bg-type",
 		Aliases: []string{"bg"},
 		Value:   "solid-color",
-		Usage:   fmt.Sprint("Set the background type: ", strings.Join(bgTypes, ",")),
+		Usage:   fmt.Sprint("Set the background type: ", strings.Join(bgTypes, ", ")),
 		Validator: func(s string) error {
 
 			if slices.Contains(bgTypes, s) {
@@ -270,4 +276,154 @@ func generateGradientTable(colors []colorful.Color, stops []float64) (assetsgen.
 	}
 
 	return table, nil
+}
+
+func applyFlagFn(apply *bool) *cli.BoolFlag {
+	return &cli.BoolFlag{
+		Name:        "apply",
+		Value:       false,
+		Usage:       "Move the generated files to android or ios respected folders and overwrite existing files. Then delete the generated files.",
+		Destination: apply,
+	}
+}
+
+func getAndroidResDirAsRoot() (*os.Root, error) {
+	resDir, err := getAndroidResDir()
+	if err != nil {
+		return nil, err
+	}
+
+	p := filepath.Join("./", resDir)
+	err = os.MkdirAll(p, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	rootDir, err := os.OpenRoot(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return rootDir, nil
+}
+
+func getAndroidResDir() (string, error) {
+	// android native project
+	resDirPath := filepath.Join("./", "app", "src", "main", "res")
+	native := isPathExist(resDirPath)
+	if native {
+		return resDirPath, nil
+	}
+
+	// flutter project
+	resDirPath = filepath.Join("./", "android", "app", "src", "main", "res")
+	flutter := isPathExist(resDirPath)
+	if flutter {
+		return resDirPath, nil
+	}
+
+	return resDirPath, ErrDidNotFindTheResAndroidFolder
+}
+
+func getIosXcassetsAsRoot() (*os.Root, error) {
+	xcassetsDir, err := getIosXcassets()
+	if err != nil {
+		return nil, err
+	}
+
+	p := filepath.Join("./", xcassetsDir)
+	err = os.MkdirAll(p, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	rootDir, err := os.OpenRoot(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return rootDir, nil
+}
+
+// Assets.xcassets
+func getIosXcassets() (string, error) {
+	// ios native project
+	xcassetsDirPath := filepath.Join("./", "Assets.xcassets")
+	native := isPathExist(xcassetsDirPath)
+	if native {
+		return xcassetsDirPath, nil
+	}
+
+	// flutter project
+	xcassetsDirPath = filepath.Join("./", "ios", "Assets.xcassets")
+	flutter := isPathExist(xcassetsDirPath)
+	if flutter {
+		return xcassetsDirPath, nil
+	}
+
+	return xcassetsDirPath, ErrDidNotFindTheAssetsXcassetsIosFolder
+}
+
+func isPathExist(path string) bool {
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
+}
+
+func moveFilesR(src, dst string) error {
+	err := os.Mkdir(dst, os.ModePerm)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		from := filepath.Join(src, entry.Name())
+		to := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			err = moveFilesR(from, to)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
+		err := os.Rename(from, to)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func moveAndroidOutFiles() error {
+	resRootDir, err := getAndroidResDirAsRoot()
+	if err != nil {
+		return err
+	}
+	resRootDir.Close()
+	assetsOutRootDir, err := assetsgen.GetRootDir()
+	if err != nil {
+		return err
+	}
+	assetsOutRootDir.Close()
+
+	src := filepath.Join(assetsOutRootDir.Name(), assetsgen.PlatformTypeAndroid, "res")
+	dst := filepath.Join(resRootDir.Name())
+	err = moveFilesR(src, dst)
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll(assetsOutRootDir.Name())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -1,6 +1,7 @@
 package assetsgen
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -20,12 +21,13 @@ import (
 type imageInfo struct {
 	img               image.Image
 	imagePath         string
+	saveDirPath       string
 	imageName         string
 	imgNameWithoutExt string
 	imageExt          string
 	encoder           imgio.Encoder
 	asset             asset
-	genImageLocation  func(screenType, customImageName string) (directory string, imageName string)
+	rootDir           *os.Root
 }
 
 type imageInfoSlice []imageInfo
@@ -75,7 +77,7 @@ func (s *imageInfoSlice) SetAssets(assets []asset) *imageInfoSlice {
 	return s
 }
 
-func newImageInfo(imagePath string, platform platformType, intent intention, lastFolderName func(screenType string) string) (imageInfo, error) {
+func newImageInfo(imagePath string, savePath string) (imageInfo, error) {
 	if err := IsFileExistsAndImage(imagePath); err != nil {
 		return imageInfo{}, err
 	}
@@ -94,27 +96,31 @@ func newImageInfo(imagePath string, platform platformType, intent intention, las
 	imageExt := filepath.Ext(imagePath)
 	imgNameWithoutExt := strings.ReplaceAll(imgName, imageExt, "")
 
+	rootDir, err := GetRootDir()
+	if err != nil {
+		return imageInfo{}, err
+	}
+
+	subDirs := splitPath(savePath)
+	saveDirPath := ""
+	for _, subdir := range subDirs {
+
+		saveDirPath = filepath.Join(saveDirPath, subdir)
+		err = rootDir.Mkdir(saveDirPath, os.ModePerm)
+		if err != nil && !os.IsExist(err) {
+			return imageInfo{}, err
+		}
+	}
+
 	imgInfo := imageInfo{
 		img:               img,
 		encoder:           enc,
 		imagePath:         imagePath,
+		rootDir:           rootDir,
 		imageName:         imgName,
 		imageExt:          imageExt,
+		saveDirPath:       saveDirPath,
 		imgNameWithoutExt: imgNameWithoutExt,
-		genImageLocation: func(screenType, customImageName string) (string, string) {
-			dir := filepath.Join(
-				rootFolderName,
-				string(platform),
-				string(intent),
-				imgNameWithoutExt,
-				lastFolderName(screenType),
-			)
-			name := imgName
-			if len(customImageName) != 0 {
-				name = customImageName
-			}
-			return dir, name
-		},
 	}
 
 	return imgInfo, nil
@@ -181,7 +187,6 @@ func (imgInfo *imageInfo) Padding(padding int) *imageInfo {
 }
 
 func (imgInfo *imageInfo) ConvertColors(fn func(color.Color) color.Color) *imageInfo {
-
 	imgInfo.img = adjust.Apply(
 		imgInfo.img,
 		func(pxColor color.RGBA) color.RGBA {
@@ -325,13 +330,24 @@ func (imgInfo imageInfo) Save() error {
 }
 
 func (imgInfo imageInfo) SaveWithCustomName(customImageName string) error {
-	dir, name := imgInfo.genImageLocation(imgInfo.asset.Name(), customImageName)
-	err := os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
+	name := imgInfo.imageName
+	if len(customImageName) != 0 {
+		name = fmt.Sprint(customImageName, imgInfo.imageExt)
+	}
+
+	var dir string
+	if len(imgInfo.asset.DirName()) != 0 {
+		dir = filepath.Join(imgInfo.saveDirPath, imgInfo.asset.DirName())
+	} else {
+		dir = imgInfo.saveDirPath
+	}
+
+	err := imgInfo.rootDir.Mkdir(dir, os.ModePerm)
+	if err != nil && !os.IsExist(err) {
 		return err
 	}
 
-	err = imgio.Save(filepath.Join(dir, name), imgInfo.img, imgInfo.encoder)
+	err = saveImage(imgInfo.rootDir, filepath.Join(dir, name), imgInfo.img, imgInfo.encoder)
 	if err != nil {
 		return err
 	}
@@ -360,7 +376,8 @@ func (imgInfo imageInfo) Copy() *imageInfo {
 		imgNameWithoutExt: imgInfo.imgNameWithoutExt,
 		encoder:           imgInfo.encoder,
 		asset:             imgInfo.asset,
-		genImageLocation:  imgInfo.genImageLocation,
+		rootDir:           imgInfo.rootDir,
+		saveDirPath:       imgInfo.saveDirPath,
 	}
 }
 
@@ -439,8 +456,7 @@ func (imgInfo *imageInfo) RemoveAlphaOnThreshold(threshold float64) *imageInfo {
 				return rgba
 			}
 
-			rgba.A = 0
-			return rgba
+			return color.RGBA{}
 		},
 	)
 }

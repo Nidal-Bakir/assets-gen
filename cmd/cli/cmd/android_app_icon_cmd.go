@@ -8,8 +8,6 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var bgTypes = []string{"solid-color", "linear-gradient", "radial-gradient", "image"}
-
 func AndroidAppIcon() *cli.Command {
 	var imagePath string
 	var outputName string
@@ -23,6 +21,7 @@ func AndroidAppIcon() *cli.Command {
 
 	var maskColor *colorful.Color
 	var trimWhiteSpace bool
+	var apply bool
 	var roundedCornerPercentRadius float64
 	var alphaThreshold float64
 	var padding float64
@@ -31,8 +30,11 @@ func AndroidAppIcon() *cli.Command {
 	imageArg := imageArg(&imagePath)
 
 	action := func(ctx context.Context, c *cli.Command) error {
-		if err := assetsgen.IsFileExistsAndImage(imagePath); err != nil {
-			return err
+		if b := isPathExist(imagePath); !b {
+			if len(imagePath) == 0 {
+				return ErrPleaseSpecifyImagePath
+			}
+			return assetsgen.ErrFileNotFound
 		}
 
 		bgIcon, err := getBgIcon(bgType, gradientColors, gradientStops, solidColor, linearGradientDegree, bgImagePath)
@@ -40,7 +42,7 @@ func AndroidAppIcon() *cli.Command {
 			return err
 		}
 
-		return assetsgen.GenerateAppIconForAndroid(
+		err = assetsgen.GenerateAppIconForAndroid(
 			imagePath,
 			assetsgen.AndroidAppIconOptions{
 				RoundedCornerPercentRadius: roundedCornerPercentRadius,
@@ -53,19 +55,33 @@ func AndroidAppIcon() *cli.Command {
 				OutputFileName:             outputName,
 			},
 		)
+		if err != nil {
+			return err
+		}
+
+		if apply {
+			err = applyAndroidAppIcon(outputName)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 
 	usageText := `android-app-icon [command [command options]] <image path>
 
 examples:
-	aai -bg linear-gradient -degree 90 -colors "#FF0000, #00FF00, #0000FF" -stops "0.0, 0.5, 1.0" "./ic_launcher.png"
-	aai -color "#0000FF" "./ic_launcher.png"
-	aai -o "app_icon" -p 0.1 --trim "./ic_launcher.png"`
+	aai "./ic_launcher.png"
+	aai -bg linear-gradient --degree 90 --colors "#FF0000, #00FF00, #0000FF" --stops "0.0, 0.5, 1.0" "./ic_launcher.png"
+	aai --color "#0000FF" "./ic_launcher.png"
+	aai --apply -o "app_icon" -p 0.1 --trim "./ic_launcher.png"`
 
 	return &cli.Command{
 		Name:      "android-app-icon",
 		Aliases:   []string{"aai"},
 		UsageText: usageText,
+		Usage:     "Generate Android app launcher icons",
 		Action:    action,
 		Arguments: []cli.Argument{
 			imageArg,
@@ -75,7 +91,7 @@ examples:
 			androidFolderFlag(&folderName),
 			paddingFlagFn(&padding),
 			alphaThresholdFlagFn(&alphaThreshold),
-			outputNameFlagFn(&outputName),
+			outputNameFlagFn(&outputName, "ic_launcher"),
 			bgTypeFlagFn(&bgType),
 			solidColorFlagFn(&solidColor),
 			gradientColorsFlagFn(&gradientColors),
@@ -84,6 +100,7 @@ examples:
 			imageBgFlagFn(&bgImagePath),
 			trimWhiteSpaceFlagFn(&trimWhiteSpace),
 			maskColorFlagFn(&maskColor),
+			applyFlagFn(&apply),
 		},
 	}
 }
@@ -102,4 +119,12 @@ func cornerRadiusFlagFn(roundedCornerRadius *float64) *cli.FloatFlag {
 			return nil
 		},
 	}
+}
+
+func applyAndroidAppIcon(outputFileName string) error {
+	err := moveAndroidOutFiles()
+	if err != nil {
+		return err
+	}
+	return nil
 }
