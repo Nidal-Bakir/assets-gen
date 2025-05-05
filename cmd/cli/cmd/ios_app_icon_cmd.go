@@ -63,7 +63,7 @@ func IosAppIcon() *cli.Command {
 			linearGradientDegreeFlagFn(&linearGradientDegree),
 			imageBgFlagFn(&bgImagePath),
 			trimWhiteSpaceFlagFn(&trimWhiteSpace),
-			maskColorFlagFn(func(c colorful.Color) { maskColor = &c }),
+			maskColorFlagFn(&maskColor),
 		},
 	}
 }

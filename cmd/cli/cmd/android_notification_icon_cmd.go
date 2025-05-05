@@ -13,12 +13,21 @@ func AndroidNotificationIcon() *cli.Command {
 	var outputName string
 	folderName := assetsgen.AndroidFolderMipmap
 	var trimWhiteSpace bool
+	var alphaThreshold float64
 
 	action := func(ctx context.Context, c *cli.Command) error {
 		if err := assetsgen.IsFileExistsAndImage(imagePath); err != nil {
 			return err
 		}
-		return assetsgen.GenerateNotificationIconForAndroid(imagePath, folderName, outputName, trimWhiteSpace)
+		return assetsgen.GenerateNotificationIconForAndroid(
+			imagePath,
+			assetsgen.AndroidNotificationIconOptions{
+				FolderName:     folderName,
+				TrimWhiteSpace: trimWhiteSpace,
+				OutputFileName: outputName,
+				AlphaThreshold: alphaThreshold,
+			},
+		)
 	}
 
 	return &cli.Command{
@@ -32,6 +41,7 @@ func AndroidNotificationIcon() *cli.Command {
 			androidFolderFlag(&folderName),
 			outputNameFlagFn(&outputName),
 			trimWhiteSpaceFlagFn(&trimWhiteSpace),
+			alphaThresholdFlagFn(&alphaThreshold),
 		},
 	}
 }

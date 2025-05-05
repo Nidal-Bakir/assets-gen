@@ -3,7 +3,6 @@ package assetsgen
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 
@@ -194,7 +193,7 @@ func (a iosAppIconDpiAsset) CalcPadding(_, _ int) int {
 type IosAppIconOptions struct {
 	BgIcon BackgroundIcon
 
-	// between [0..1] as percentage of how match the pixel should be transparent to keep its original color.
+	// between [0..1] as percentage of how match the pixel should be transparent to keep its original color. Use -1 to disable
 	AlphaThreshold float64
 
 	// between [0..1] as percentage of the maximum axis (w,h) of the image
@@ -238,30 +237,26 @@ func genLogoImageForIos(imagePath string, option IosAppIconOptions) (imageInfo, 
 		return logoImage, err
 	}
 
-	if option.TrimWhiteSpace {
-		logoImage.TrimWhiteSpace()
-	}
-
-	bounds := logoImage.img.Bounds()
-	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * option.Padding
-	pad = math.Floor(pad)
+	pad := calPadding(logoImage.img, option.Padding)
 
 	logoImage.
+		If(option.TrimWhiteSpace, logoImage.TrimWhiteSpace).
 		SquareImageWithEmptyPixels().
 		ResizeSquare(MAX_DPI_SIZE_FOR_IOS_APP_ICON). // for performance optimization
-		Padding(int(pad)).
-		ResizeSquare(MAX_DPI_SIZE_FOR_IOS_APP_ICON) // for performance optimization
-
-	if option.MaskColor != nil {
-		logoImage.ConvertNoneOpaqueToColor(*option.MaskColor)
-	}
+		Padding(pad).
+		ResizeSquare(MAX_DPI_SIZE_FOR_IOS_APP_ICON). // for performance optimization
+		If(option.MaskColor != nil, func() *imageInfo { return logoImage.ConvertNoneOpaqueToColor(*option.MaskColor) })
 
 	return logoImage, nil
 }
 
 func generateIosAppIcon(logoImage imageInfo, bgImage imageInfo, alphaThreshold float64, iosAppIconDpis []asset) error {
 	imgs := bgImage.
-		StackWithNoAlpha(alphaThreshold, logoImage).
+		IfElse(
+			alphaThreshold < 0,
+			func() *imageInfo { return bgImage.Stack(logoImage) },
+			func() *imageInfo { return bgImage.StackWithNoAlpha(alphaThreshold, logoImage) },
+		).
 		SplitPerAsset(iosAppIconDpis).
 		ResizeForAssets()
 

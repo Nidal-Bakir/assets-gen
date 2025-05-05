@@ -2,7 +2,6 @@ package assetsgen
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -130,7 +129,7 @@ type AndroidAppIconOptions struct {
 	// between [0..1] as percentage of the Radius. For example 1 would make the a full circle clip of the image, and 0 will do nothing, 0.5 will make rounded corners
 	RoundedCornerPercentRadius float64
 
-	// between [0..1] as percentage of how match the pixel should be transparent to keep its original color.
+	// between [0..1] as percentage of how match the pixel should be transparent to keep its original color. Use -1 to disable
 	AlphaThreshold float64
 
 	BgIcon     BackgroundIcon
@@ -143,34 +142,26 @@ type AndroidAppIconOptions struct {
 	TrimWhiteSpace bool
 
 	MaskColor *colorful.Color
+
+	OutputFileName string
 }
 
-func GenerateAppIconForAndroid(imagePath string, outputFileName string, option AndroidAppIconOptions) error {
+func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) error {
 	logoImage, err := genImageInfoForAndroid(imagePath, option.FolderName, intentAppIcon)
 	if err != nil {
 		return err
 	}
 
-	if option.TrimWhiteSpace {
-		logoImage.TrimWhiteSpace()
-	}
-
-	bounds := logoImage.img.Bounds()
-	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * option.Padding
-	pad = math.Floor(pad)
+	pad := calPadding(logoImage.img, option.Padding)
 
 	logoImage.
+		If(option.TrimWhiteSpace, logoImage.TrimWhiteSpace).
 		SquareImageWithEmptyPixels().
 		ResizeSquare(MAX_DPI_SIZE_FOR_ANDROID_APP_ICON). // for performance optimization
-		Padding(int(pad)).
+		Padding(pad).
 		ResizeSquare(MAX_DPI_SIZE_FOR_ANDROID_APP_ICON). // for performance optimization
-		RemoveAlphaOnThreshold(option.AlphaThreshold)
-
-	fmt.Println("1: ", option.MaskColor)
-	if option.MaskColor != nil {
-		fmt.Println("2: ", option.MaskColor)
-		logoImage.ConvertNoneOpaqueToColor(*option.MaskColor)
-	}
+		If(option.AlphaThreshold >= 0, func() *imageInfo { return logoImage.RemoveAlphaOnThreshold(option.AlphaThreshold) }).
+		If(option.MaskColor != nil, func() *imageInfo { return logoImage.ConvertNoneOpaqueToColor(*option.MaskColor) })
 
 	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
 	if err != nil {
@@ -185,12 +176,12 @@ func GenerateAppIconForAndroid(imagePath string, outputFileName string, option A
 
 	go func() {
 		defer w.Done()
-		legacyAppIconError = generateLegacyAppIcon(logoImage, bgImage, option.RoundedCornerPercentRadius, option.AlphaThreshold, androidAppIconDpisLegacy, outputFileName)
+		legacyAppIconError = generateLegacyAppIcon(logoImage, bgImage, option.RoundedCornerPercentRadius, option.AlphaThreshold, androidAppIconDpisLegacy, option.OutputFileName)
 	}()
 
 	go func() {
 		defer w.Done()
-		adaptiveAppIconError = generateAdaptiveAppIcon(logoImage, bgImage, androidAdaptiveAppIconLayerDpisV26, androidAdaptiveAppIconLogoDpisV26, outputFileName)
+		adaptiveAppIconError = generateAdaptiveAppIcon(logoImage, bgImage, androidAdaptiveAppIconLayerDpisV26, androidAdaptiveAppIconLogoDpisV26, option.OutputFileName)
 	}()
 
 	w.Wait()

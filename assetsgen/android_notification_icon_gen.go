@@ -38,26 +38,36 @@ var androidNotificationIconDpis = []asset{
 	},
 }
 
-func GenerateNotificationIconForAndroid(imagePath string, folderName AndroidFolderName, outputFileName string, trimWhiteSpace bool) error {
-	imgInfo, err := genImageInfoForAndroid(imagePath, folderName, intentNotificationIcon)
+type AndroidNotificationIconOptions struct {
+	// between [0..1] as percentage of how match the pixel should be transparent to keep its original color. Use -1 to disable
+	AlphaThreshold float64
+
+	FolderName AndroidFolderName
+
+	// removes the white spaces from the edges of the logo
+	TrimWhiteSpace bool
+
+	OutputFileName string
+}
+
+func GenerateNotificationIconForAndroid(imagePath string, option AndroidNotificationIconOptions) error {
+	imgInfo, err := genImageInfoForAndroid(imagePath, option.FolderName, intentNotificationIcon)
 	if err != nil {
 		return err
 	}
 
-	if trimWhiteSpace {
-		imgInfo.TrimWhiteSpace()
-	}
-
-	if len(outputFileName) != 0 {
-		outputFileName = fmt.Sprint(outputFileName, imgInfo.imageExt)
+	if len(option.OutputFileName) != 0 {
+		option.OutputFileName = fmt.Sprint(option.OutputFileName, imgInfo.imageExt)
 	}
 
 	err = imgInfo.
+		If(option.TrimWhiteSpace, imgInfo.TrimWhiteSpace).
+		If(option.AlphaThreshold >= 0, func() *imageInfo { return imgInfo.RemoveAlphaOnThreshold(option.AlphaThreshold) }).
 		ConvertNoneOpaqueToColor(color.RGBA{R: 255, G: 255, B: 255, A: 255}).
 		SquareImageWithEmptyPixels().
 		SplitPerAsset(androidNotificationIconDpis).
 		ResizeForAssets().
-		SaveWithCustomName(outputFileName)
+		SaveWithCustomName(option.OutputFileName)
 
 	if err != nil {
 		return err

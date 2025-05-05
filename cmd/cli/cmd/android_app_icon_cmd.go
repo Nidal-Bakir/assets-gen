@@ -42,7 +42,6 @@ func AndroidAppIcon() *cli.Command {
 
 		return assetsgen.GenerateAppIconForAndroid(
 			imagePath,
-			outputName,
 			assetsgen.AndroidAppIconOptions{
 				RoundedCornerPercentRadius: roundedCornerPercentRadius,
 				FolderName:                 folderName,
@@ -51,6 +50,7 @@ func AndroidAppIcon() *cli.Command {
 				AlphaThreshold:             alphaThreshold,
 				TrimWhiteSpace:             trimWhiteSpace,
 				MaskColor:                  maskColor,
+				OutputFileName:             outputName,
 			},
 		)
 	}
@@ -83,7 +83,7 @@ examples:
 			linearGradientDegreeFlagFn(&linearGradientDegree),
 			imageBgFlagFn(&bgImagePath),
 			trimWhiteSpaceFlagFn(&trimWhiteSpace),
-			maskColorFlagFn(func(c colorful.Color) { maskColor = &c }),
+			maskColorFlagFn(&maskColor),
 		},
 	}
 }

@@ -2,6 +2,8 @@ package assetsgen
 
 import (
 	"errors"
+	"image"
+	"math"
 	"os"
 	"strings"
 
@@ -126,4 +128,11 @@ func IsFileExistsAndImage(filePath string) error {
 	}
 
 	return ErrUnsupportedFileType
+}
+
+func calPadding(img image.Image, padding float64) int {
+	bounds := img.Bounds()
+	pad := math.Max(float64(bounds.Dx()), float64(bounds.Dy())) * padding
+	pad = math.Floor(pad)
+	return int(pad)
 }

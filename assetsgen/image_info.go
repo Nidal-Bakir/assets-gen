@@ -423,7 +423,7 @@ func (imgInfo *imageInfo) StackWithNoAlpha(threshold float64, images ...imageInf
 	)
 }
 
-// can not be 0
+// will not affect the full transparent or non transparent colors i.e. 0 and 255 value for the alpha channel
 func (imgInfo *imageInfo) RemoveAlphaOnThreshold(threshold float64) *imageInfo {
 	return imgInfo.UpdatePixels(
 		func(x, y int, c color.Color) color.Color {
@@ -595,4 +595,18 @@ func (imgInfo *imageInfo) CropToSquare() *imageInfo {
 
 	imgInfo.img = dst
 	return imgInfo
+}
+
+func (imgInfo *imageInfo) If(condition bool, action func() *imageInfo) *imageInfo {
+	if condition {
+		return action()
+	}
+	return imgInfo
+}
+
+func (imgInfo *imageInfo) IfElse(condition bool, tureAction func() *imageInfo, falseAction func() *imageInfo) *imageInfo {
+	if condition {
+		return tureAction()
+	}
+	return falseAction()
 }

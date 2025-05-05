@@ -2,13 +2,20 @@ package assetsgen
 
 import "math"
 
-func GenerateImageAssetsForAndroid(imagePath string, folderName AndroidFolderName, trimWhiteSpace bool) error {
-	imgInfo, err := genImageInfoForAndroid(imagePath, folderName, intentAsset)
+type AndroidImageAssetsOptions struct {
+	FolderName AndroidFolderName
+
+	// removes the white spaces from the edges of the logo
+	TrimWhiteSpace bool
+}
+
+func GenerateImageAssetsForAndroid(imagePath string, option AndroidImageAssetsOptions) error {
+	imgInfo, err := genImageInfoForAndroid(imagePath, option.FolderName, intentAsset)
 	if err != nil {
 		return err
 	}
 
-	if trimWhiteSpace {
+	if option.TrimWhiteSpace {
 		imgInfo.TrimWhiteSpace()
 	}
 

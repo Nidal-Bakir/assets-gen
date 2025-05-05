@@ -18,6 +18,7 @@ var (
 	ErrInvalidAndroidFolder            = errors.New("invalid android folder name. possible values (mipmap, drawable)")
 	ErrInvalidValueRange               = errors.New("invalid value range")
 	ErrPaddingOutOfRange               = errors.New("padding should be between 0..1")
+	ErrAlphaThresholdOutOfRange        = errors.New("threshold should be between 0..1 or -1 to disable")
 	ErrInvalidColor                    = errors.New("invalid color. e.g of valid colors #0000FF, #FFFFFF")
 	ErrColorsAndStopsLengthDidNotMatch = errors.New("the length fo colors should match the length of stops")
 )
@@ -112,15 +113,13 @@ func solidColorFlagFn(solidBgColor *colorful.Color) *cli.StringFlag {
 	}
 }
 
-func maskColorFlagFn(setMaskColorFn func(colorful.Color)) *cli.StringFlag {
+func maskColorFlagFn(maskColor **colorful.Color) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:  "mask",
 		Usage: "Mask the logo colors",
 		Action: func(ctx context.Context, c *cli.Command, s string) error {
 			color, err := colorful.Hex(s)
-			if err == nil {
-				setMaskColorFn(color)
-			}
+			*maskColor = &color
 			return err
 		},
 	}
@@ -208,10 +207,10 @@ func alphaThresholdFlagFn(alphaThreshold *float64) *cli.FloatFlag {
 		Name:        "alpha-threshold",
 		Destination: alphaThreshold,
 		Value:       0.5,
-		Usage:       "Between [0..1] as percentage of how match the pixel should be transparent to keep its original color.",
+		Usage:       "Between [0..1] as percentage of how match the pixel should be transparent to keep its original color. Use -1 to disable",
 		Validator: func(i float64) error {
-			if i < 0 || i > 1 {
-				return ErrPaddingOutOfRange
+			if i > 1 {
+				return ErrAlphaThresholdOutOfRange
 			}
 			return nil
 		},
