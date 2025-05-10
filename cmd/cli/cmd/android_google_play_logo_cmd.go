@@ -2,13 +2,15 @@ package cmd
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"github.com/Nidal-Bakir/assets-gen/assetsgen"
 	"github.com/lucasb-eyer/go-colorful"
 	"github.com/urfave/cli/v3"
 )
 
-func AndroidAppIcon() *cli.Command {
+func AndroidGooglePlayLogo() *cli.Command {
 	var imagePath string
 	var outputName string
 
@@ -22,10 +24,9 @@ func AndroidAppIcon() *cli.Command {
 	var maskColor *colorful.Color
 	var trimWhiteSpace bool
 	var apply bool
-	var roundedCornerPercentRadius float64
+
 	var alphaThreshold float64
 	var padding float64
-	var folderName = assetsgen.AndroidFolderMipmap
 
 	imageArg := imageArg(&imagePath)
 
@@ -42,17 +43,15 @@ func AndroidAppIcon() *cli.Command {
 			return err
 		}
 
-		err = assetsgen.GenerateAppIconForAndroid(
+		err = assetsgen.GenerateAndroidGooglePlayLogo(
 			imagePath,
-			assetsgen.AndroidAppIconOptions{
-				RoundedCornerPercentRadius: roundedCornerPercentRadius,
-				FolderName:                 folderName,
-				Padding:                    padding,
-				BgIcon:                     bgIcon,
-				AlphaThreshold:             alphaThreshold,
-				TrimWhiteSpace:             trimWhiteSpace,
-				MaskColor:                  maskColor,
-				OutputFileName:             outputName,
+			assetsgen.AndroidGooglePlayLogoOptions{
+				Padding:        padding,
+				BgIcon:         bgIcon,
+				AlphaThreshold: alphaThreshold,
+				TrimWhiteSpace: trimWhiteSpace,
+				MaskColor:      maskColor,
+				OutputFileName: outputName,
 			},
 		)
 		if err != nil {
@@ -60,7 +59,7 @@ func AndroidAppIcon() *cli.Command {
 		}
 
 		if apply {
-			err = applyAndroidAppIcon(outputName)
+			err = applyAndroidPlayStoreLogo()
 			if err != nil {
 				return err
 			}
@@ -72,26 +71,24 @@ func AndroidAppIcon() *cli.Command {
 	usageText := `android-app-icon [command [command options]] <image path>
 
 examples:
-	aai "./ic_launcher.png"
-	aai -bg linear-gradient --degree 90 --colors "#FF0000, #00FF00, #0000FF" --stops "0.0, 0.5, 1.0" "./ic_launcher.png"
-	aai --color "#0000FF" "./ic_launcher.png"
-	aai --apply -o "app_icon" -p 0.1 --trim "./ic_launcher.png"`
+	apsl "./logo.png"
+	apsl -bg linear-gradient --degree 90 --colors "#FF0000, #00FF00, #0000FF" --stops "0.0, 0.5, 1.0" "./logo.png"
+	apsl --color "#0000FF" "./logo.png"
+	apsl --apply -o "play_store" -p 0.1 --trim "./logo.png"`
 
 	return &cli.Command{
-		Name:      "android-app-icon",
-		Aliases:   []string{"aai"},
+		Name:      "android-google-play-logo",
+		Aliases:   []string{"agpl"},
 		UsageText: usageText,
-		Usage:     "Generate Android app launcher icons",
+		Usage:     "Generate Android Google Play logo 512x512",
 		Action:    action,
 		Arguments: []cli.Argument{
 			imageArg,
 		},
 		Flags: []cli.Flag{
-			cornerRadiusFlagFn(&roundedCornerPercentRadius),
-			androidFolderFlag(&folderName),
 			paddingFlagFn(&padding),
 			alphaThresholdFlagFn(&alphaThreshold),
-			outputNameFlagFn(&outputName, "ic_launcher"),
+			outputNameFlagFn(&outputName, "play_store_logo_512x512"),
 			bgTypeFlagFn(&bgType),
 			solidColorFlagFn(&solidColor),
 			gradientColorsFlagFn(&gradientColors),
@@ -105,26 +102,30 @@ examples:
 	}
 }
 
-func cornerRadiusFlagFn(roundedCornerRadius *float64) *cli.FloatFlag {
-	return &cli.FloatFlag{
-		Name:        "corner-radius",
-		Aliases:     []string{"r"},
-		Usage:       "Between [0..1] as percentage of the Radius. For example 1 would make the a full circle clip of the image, and 0 will do nothing, 0.5 will make rounded corners",
-		Destination: roundedCornerRadius,
-		Value:       1,
-		Validator: func(i float64) error {
-			if i < 0 || i > 1 {
-				return ErrInvalidValueRange
-			}
-			return nil
-		},
-	}
-}
-
-func applyAndroidAppIcon(outputFileName string) error {
-	err := moveResAndroidOutFiles()
+func applyAndroidPlayStoreLogo() error {
+	adroidMainRootDir, err := getAndroidMainDirAsRoot()
 	if err != nil {
 		return err
 	}
+	adroidMainRootDir.Close()
+	assetsOutRootDir, err := assetsgen.GetRootDir()
+	if err != nil {
+		return err
+	}
+	assetsOutRootDir.Close()
+
+	src := filepath.Join(assetsOutRootDir.Name(), assetsgen.PlatformTypeAndroid, "main")
+	dst := filepath.Join(adroidMainRootDir.Name())
+
+	err = moveFilesR(src, dst)
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll(assetsOutRootDir.Name())
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

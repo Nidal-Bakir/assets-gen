@@ -23,7 +23,7 @@ var (
 	ErrAlphaThresholdOutOfRange             = errors.New("threshold should be between 0..1 or -1 to disable")
 	ErrInvalidColor                         = errors.New("invalid color. e.g of valid colors #0000FF, #FFFFFF")
 	ErrColorsAndStopsLengthDidNotMatch      = errors.New("the length fo colors should match the length of stops")
-	ErrDidNotFindTheResAndroidFolder        = errors.New("did not find the res android folder")
+	ErrDidNotFindTheAndroidFolder           = errors.New("did not find the android folder")
 	ErrDidNotFindTheAssetsXcassetsIosFolder = errors.New("did not find the Assets.xcassets ios folder")
 	ErrPleaseSpecifyImagePath               = errors.New("please specify image path")
 )
@@ -287,8 +287,80 @@ func applyFlagFn(apply *bool) *cli.BoolFlag {
 	}
 }
 
+// app/
+func getAndroidAppDir() (string, error) {
+	// android native project
+	appDirPath := filepath.Join("./", "app")
+	native := isPathExist(appDirPath)
+	if native {
+		return appDirPath, nil
+	}
+
+	// flutter project
+	appDirPath = filepath.Join("./", "android", "app")
+	flutter := isPathExist(appDirPath)
+	if flutter {
+		return appDirPath, nil
+	}
+
+	return appDirPath, ErrDidNotFindTheAndroidFolder
+}
+
+// app/src
+func getAndroidSrcDir() (string, error) {
+	appDir, err := getAndroidAppDir()
+	if err != nil {
+		return appDir, err
+	}
+
+	resDirPath := filepath.Join(appDir, "src")
+	if isPathExist(resDirPath) {
+		return resDirPath, nil
+	}
+
+	return resDirPath, ErrDidNotFindTheAndroidFolder
+}
+
+// app/src/main
+func getAndroidMainDir() (string, error) {
+	appDir, err := getAndroidSrcDir()
+	if err != nil {
+		return appDir, err
+	}
+
+	resDirPath := filepath.Join(appDir, "main")
+	if isPathExist(resDirPath) {
+		return resDirPath, nil
+	}
+
+	return resDirPath, ErrDidNotFindTheAndroidFolder
+}
+
+// app/src/main/res
+func getAndroidResDir() (string, error) {
+	appDir, err := getAndroidMainDir()
+	if err != nil {
+		return appDir, err
+	}
+
+	resDirPath := filepath.Join(appDir, "res")
+	if isPathExist(resDirPath) {
+		return resDirPath, nil
+	}
+
+	return resDirPath, ErrDidNotFindTheAndroidFolder
+}
+
 func getAndroidResDirAsRoot() (*os.Root, error) {
-	resDir, err := getAndroidResDir()
+	return getAndroidDirAsRoot(getAndroidResDir)
+}
+
+func getAndroidMainDirAsRoot() (*os.Root, error) {
+	return getAndroidDirAsRoot(getAndroidMainDir)
+}
+
+func getAndroidDirAsRoot(dir func() (string, error)) (*os.Root, error) {
+	resDir, err := dir()
 	if err != nil {
 		return nil, err
 	}
@@ -305,24 +377,6 @@ func getAndroidResDirAsRoot() (*os.Root, error) {
 	}
 
 	return rootDir, nil
-}
-
-func getAndroidResDir() (string, error) {
-	// android native project
-	resDirPath := filepath.Join("./", "app", "src", "main", "res")
-	native := isPathExist(resDirPath)
-	if native {
-		return resDirPath, nil
-	}
-
-	// flutter project
-	resDirPath = filepath.Join("./", "android", "app", "src", "main", "res")
-	flutter := isPathExist(resDirPath)
-	if flutter {
-		return resDirPath, nil
-	}
-
-	return resDirPath, ErrDidNotFindTheResAndroidFolder
 }
 
 func getIosXcassetsAsRoot() (*os.Root, error) {
@@ -348,14 +402,14 @@ func getIosXcassetsAsRoot() (*os.Root, error) {
 // Assets.xcassets
 func getIosXcassets() (string, error) {
 	// ios native project
-	xcassetsDirPath := filepath.Join("./", "Assets.xcassets")
+	xcassetsDirPath := filepath.Join("./", "Runner", "Assets.xcassets")
 	native := isPathExist(xcassetsDirPath)
 	if native {
 		return xcassetsDirPath, nil
 	}
 
 	// flutter project
-	xcassetsDirPath = filepath.Join("./", "ios", "Assets.xcassets")
+	xcassetsDirPath = filepath.Join("./", "ios", "Runner", "Assets.xcassets")
 	flutter := isPathExist(xcassetsDirPath)
 	if flutter {
 		return xcassetsDirPath, nil
@@ -401,7 +455,7 @@ func moveFilesR(src, dst string) error {
 	return nil
 }
 
-func moveAndroidOutFiles() error {
+func moveResAndroidOutFiles() error {
 	resRootDir, err := getAndroidResDirAsRoot()
 	if err != nil {
 		return err

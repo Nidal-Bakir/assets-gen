@@ -68,7 +68,7 @@ examples:
 }
 
 func applyAndroidAssetImage() error {
-	err := moveAndroidOutFiles()
+	err := moveResAndroidOutFiles()
 	if err != nil {
 		return err
 	}

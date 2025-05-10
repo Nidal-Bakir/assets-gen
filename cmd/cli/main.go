@@ -21,6 +21,7 @@ func main() {
 			cmd.AndroidNotificationIcon(),
 			cmd.AndroidAssetGen(),
 			cmd.IosAppIcon(),
+			cmd.AndroidGooglePlayLogo(),
 		},
 	}
 

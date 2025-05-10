@@ -2,7 +2,9 @@ package assetsgen
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
+	"slices"
 
 	"github.com/lucasb-eyer/go-colorful"
 )
@@ -204,12 +206,12 @@ func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
 		return err
 	}
 
-	err = generateContentsJson(logoImage, iosAppIconDpis)
+	err = generateIosAppIcon(logoImage, bgImage, option.AlphaThreshold, iosAppIconDpis)
 	if err != nil {
 		return err
 	}
 
-	err = generateIosAppIcon(logoImage, bgImage, option.AlphaThreshold, iosAppIconDpis)
+	err = generateContentsJson(logoImage, iosAppIconDpis)
 	if err != nil {
 		return err
 	}
@@ -267,8 +269,15 @@ func generateContentsJson(logoImage *imageInfo, dpis []asset) error {
 		Info   GenInfo `json:"info"`
 	}
 
+	dpisWithFileEx := slices.Clone(dpis)
+	for i, v := range dpisWithFileEx {
+		dpi := v.(iosAppIconDpiAsset)
+		dpi.Filename = fmt.Sprint(dpi.Filename, logoImage.imageExt)
+		dpisWithFileEx[i] = dpi
+	}
+
 	out := output{
-		Images: dpis,
+		Images: dpisWithFileEx,
 		Info: GenInfo{
 			Author:  "assets-gen@Nidal-Bakir",
 			Version: 1,

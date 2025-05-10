@@ -73,7 +73,7 @@ examples:
 }
 
 func applyAndroidNotificationIcon(outputName string) error {
-	err := moveAndroidOutFiles()
+	err := moveResAndroidOutFiles()
 	if err != nil {
 		return err
 	}

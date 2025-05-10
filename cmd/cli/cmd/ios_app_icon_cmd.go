@@ -119,6 +119,11 @@ func moveIosOutFiles() error {
 
 	src := filepath.Join(assetsOutRootDir.Name(), assetsgen.PlatformTypeIos, "Assets.xcassets", "AppIcon.appiconset")
 	dst := filepath.Join(xcassetsRootDir.Name(), "AppIcon.appiconset")
+	err = os.RemoveAll(dst)
+	if err != nil {
+		return err
+	}
+
 	err = moveFilesR(src, dst)
 	if err != nil {
 		return err
