@@ -218,7 +218,7 @@ func GenerateAppIconForIos(imagePath string, option IosAppIconOptions) error {
 
 }
 
-func genLogoImageForIos(imagePath string, option IosAppIconOptions) (imageInfo, error) {
+func genLogoImageForIos(imagePath string, option IosAppIconOptions) (*imageInfo, error) {
 	logoImage, err := newImageInfo(
 		imagePath,
 		filepath.Join(PlatformTypeIos, "Assets.xcassets", "AppIcon.appiconset"),
@@ -232,13 +232,12 @@ func genLogoImageForIos(imagePath string, option IosAppIconOptions) (imageInfo, 
 	logoImage.
 		If(option.TrimWhiteSpace, logoImage.TrimWhiteSpace).
 		SquareImageWithEmptyPixels(pad).
-		// Padding(pad).
 		If(option.MaskColor != nil, func() *imageInfo { return logoImage.ConvertNoneOpaqueToColor(*option.MaskColor) })
 
 	return logoImage, nil
 }
 
-func generateIosAppIcon(logoImage imageInfo, bgImage imageInfo, alphaThreshold float64, iosAppIconDpis []asset) error {
+func generateIosAppIcon(logoImage *imageInfo, bgImage *imageInfo, alphaThreshold float64, iosAppIconDpis []asset) error {
 	imgs := bgImage.
 		IfElse(
 			alphaThreshold < 0,
@@ -258,7 +257,7 @@ func generateIosAppIcon(logoImage imageInfo, bgImage imageInfo, alphaThreshold f
 	return nil
 }
 
-func generateContentsJson(logoImage imageInfo, dpis []asset) error {
+func generateContentsJson(logoImage *imageInfo, dpis []asset) error {
 	type GenInfo struct {
 		Author  string `json:"author"`
 		Version int    `json:"version"`

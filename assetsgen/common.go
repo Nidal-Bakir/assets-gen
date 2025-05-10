@@ -33,7 +33,7 @@ type asset interface {
 }
 
 type BackgroundIcon interface {
-	generateImgInfo(logo imageInfo) (imageInfo, error)
+	generateImgInfo(logo *imageInfo) (*imageInfo, error)
 }
 
 type gradientBackground struct {
@@ -42,7 +42,7 @@ type gradientBackground struct {
 	gradientType GradientType
 }
 
-func (g gradientBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
+func (g gradientBackground) generateImgInfo(logo *imageInfo) (*imageInfo, error) {
 	bgImage := logo.Copy()
 
 	switch g.gradientType {
@@ -52,7 +52,7 @@ func (g gradientBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
 		bgImage.RadialGradient(g.table)
 	}
 
-	return *bgImage, nil
+	return bgImage, nil
 }
 
 func NewLinearGradientBackground(table GradientTable, degree int) BackgroundIcon {
@@ -67,11 +67,11 @@ type imageBackground struct {
 	imagePath string
 }
 
-func (i imageBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
+func (i imageBackground) generateImgInfo(logo *imageInfo) (*imageInfo, error) {
 	bgImage := logo.Copy()
 	img, err := imgio.Open(i.imagePath)
 	if err != nil {
-		return imageInfo{}, err
+		return &imageInfo{}, err
 	}
 	bgImage.img = img
 
@@ -81,7 +81,7 @@ func (i imageBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
 		Resize(logoBounds.Dx(), logoBounds.Dy()).
 		RemoveAlpha()
 
-	return *bgImage, nil
+	return bgImage, nil
 }
 
 // [padding] between [0..1] as percentage of the maximum axis (w,h) of the image
@@ -93,8 +93,8 @@ type solidColorBackground struct {
 	color colorful.Color
 }
 
-func (s solidColorBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
-	return *logo.Copy().SoldiColor(s.color), nil
+func (s solidColorBackground) generateImgInfo(logo *imageInfo) (*imageInfo, error) {
+	return logo.Copy().SoldiColor(s.color), nil
 }
 
 func NewSolidColorBackground(c colorful.Color) BackgroundIcon {

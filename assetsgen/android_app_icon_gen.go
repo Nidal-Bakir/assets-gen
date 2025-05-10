@@ -10,9 +10,6 @@ import (
 	"github.com/lucasb-eyer/go-colorful"
 )
 
-// make sure to update it if you update the dpis slices below
-const MAX_DPI_SIZE_FOR_ANDROID_APP_ICON = 432
-
 func androidAdaptiveAppIconLayerDpisV26(androidFolderName string) []asset {
 	// MDPI    - 108px
 	// HDPI    - 162px
@@ -38,7 +35,7 @@ func androidAdaptiveAppIconLayerDpisV26(androidFolderName string) []asset {
 		},
 		androidAppIconDpiAsset{
 			dpiName: "xxxhdpi",
-			size:    MAX_DPI_SIZE_FOR_ANDROID_APP_ICON,
+			size:    432,
 		},
 	}
 	for i, v := range dpis {
@@ -213,11 +210,10 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 	logoImage.
 		If(option.TrimWhiteSpace, logoImage.TrimWhiteSpace).
 		SquareImageWithEmptyPixels(pad).
-		ResizeSquare(MAX_DPI_SIZE_FOR_ANDROID_APP_ICON). // for performance optimization
 		If(option.AlphaThreshold >= 0, func() *imageInfo { return logoImage.RemoveAlphaOnThreshold(option.AlphaThreshold) }).
 		If(option.MaskColor != nil, func() *imageInfo { return logoImage.ConvertNoneOpaqueToColor(*option.MaskColor) })
 
-	var bgImage imageInfo
+	bgImage := new(imageInfo)
 	if _, ok := option.BgIcon.(solidColorBackground); !ok {
 		bgImage, err = option.BgIcon.generateImgInfo(logoImage)
 		if err != nil {
@@ -242,8 +238,8 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 		}
 
 		legacyAppIconError = generateLegacyAppIcon(
-			logoImage,
-			bgImage,
+			*logoImage,
+			*bgImage,
 			option.RoundedCornerPercentRadius,
 			option.AlphaThreshold,
 			androidAppIconDpisLegacyLogo(string(option.FolderName)),
@@ -261,8 +257,8 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 		}
 
 		adaptiveAppIconError = generateAdaptiveAppIcon(
-			logoImage,
-			bgImage,
+			*logoImage,
+			*bgImage,
 			solidColor,
 			androidAdaptiveAppIconLayerDpisV26(string(option.FolderName)),
 			androidAdaptiveAppIconLogoDpisV26(string(option.FolderName)),
@@ -292,7 +288,7 @@ func generateLegacyAppIcon(
 	outputFileName string,
 ) error {
 	err := bgImage.
-		StackWithNoAlpha(AlphaThreshold, logoImage).
+		StackWithNoAlpha(AlphaThreshold, &logoImage).
 		If(roundedCornerPercentRadius > 0, func() *imageInfo { return bgImage.ClipRRect(roundedCornerPercentRadius) }).
 		SplitPerAsset(androidAppIconDpisLegacyLogo).
 		ResizeForAssets().

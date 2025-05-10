@@ -30,7 +30,7 @@ type imageInfo struct {
 	rootDir           *os.Root
 }
 
-func (ii imageInfo) IsValid() bool {
+func (ii *imageInfo) IsValid() bool {
 	return ii.img != nil
 }
 
@@ -81,19 +81,19 @@ func (s *imageInfoSlice) SetAssets(assets []asset) *imageInfoSlice {
 	return s
 }
 
-func newImageInfo(imagePath string, savePath string) (imageInfo, error) {
+func newImageInfo(imagePath string, savePath string) (*imageInfo, error) {
 	if err := IsFileExistsAndImage(imagePath); err != nil {
-		return imageInfo{}, err
+		return &imageInfo{}, err
 	}
 
 	img, err := imgio.Open(imagePath)
 	if err != nil {
-		return imageInfo{}, err
+		return &imageInfo{}, err
 	}
 
 	enc, err := imageEncoderFromPath(imagePath)
 	if err != nil {
-		return imageInfo{}, err
+		return &imageInfo{}, err
 	}
 
 	imgName := filepath.Base(imagePath)
@@ -102,7 +102,7 @@ func newImageInfo(imagePath string, savePath string) (imageInfo, error) {
 
 	rootDir, err := GetRootDir()
 	if err != nil {
-		return imageInfo{}, err
+		return &imageInfo{}, err
 	}
 
 	subDirs := splitPath(savePath)
@@ -112,11 +112,11 @@ func newImageInfo(imagePath string, savePath string) (imageInfo, error) {
 		saveDirPath = filepath.Join(saveDirPath, subdir)
 		err = rootDir.Mkdir(saveDirPath, os.ModePerm)
 		if err != nil && !os.IsExist(err) {
-			return imageInfo{}, err
+			return &imageInfo{}, err
 		}
 	}
 
-	imgInfo := imageInfo{
+	imgInfo := &imageInfo{
 		img:               img,
 		encoder:           enc,
 		imagePath:         imagePath,
@@ -397,8 +397,8 @@ func (imgInfo imageInfo) Copy() *imageInfo {
 // All the images should be the same width and height
 //
 // layout the images on top of each other the last image will be laid out at last
-func (imgInfo *imageInfo) Stack(images ...imageInfo) *imageInfo {
-	images = append([]imageInfo{*imgInfo}, images...)
+func (imgInfo *imageInfo) Stack(images ...*imageInfo) *imageInfo {
+	images = append([]*imageInfo{imgInfo}, images...)
 	slices.Reverse(images)
 
 	return imgInfo.UpdatePixels(
@@ -415,8 +415,8 @@ func (imgInfo *imageInfo) Stack(images ...imageInfo) *imageInfo {
 	)
 }
 
-func (imgInfo *imageInfo) StackWithNoAlpha(threshold float64, images ...imageInfo) *imageInfo {
-	images = append([]imageInfo{*imgInfo}, images...)
+func (imgInfo *imageInfo) StackWithNoAlpha(threshold float64, images ...*imageInfo) *imageInfo {
+	images = append([]*imageInfo{imgInfo}, images...)
 	slices.Reverse(images)
 
 	l := len(images)
