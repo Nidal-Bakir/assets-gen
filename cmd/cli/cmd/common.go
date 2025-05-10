@@ -197,7 +197,7 @@ func paddingFlagFn(padding *float64) *cli.FloatFlag {
 		Name:        "padding",
 		Aliases:     []string{"p"},
 		Destination: padding,
-		Value:       0.01,
+		Value:       0,
 		Usage:       "Between [0..1] as percentage of the maximum axis (w,h) of the image",
 		Validator: func(i float64) error {
 			if i < 0 || i > 1 {

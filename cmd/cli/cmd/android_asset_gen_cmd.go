@@ -51,11 +51,11 @@ examples:
 	aag --apply "./clear_sky.png"`
 
 	return &cli.Command{
-		Name:    "android-asset-gen",
-		Aliases: []string{"aag"},
-		UsageText:   usageText,
-		Usage: "Generate Android asset image for all DPIs",
-		Action:  action,
+		Name:      "android-asset-gen",
+		Aliases:   []string{"aag"},
+		UsageText: usageText,
+		Usage:     "Generate Android asset image for all DPIs",
+		Action:    action,
 		Arguments: []cli.Argument{
 			imageArg(&imagePath),
 		},

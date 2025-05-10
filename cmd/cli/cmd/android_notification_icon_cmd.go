@@ -23,7 +23,7 @@ func AndroidNotificationIcon() *cli.Command {
 			}
 			return assetsgen.ErrFileNotFound
 		}
-		
+
 		err := assetsgen.GenerateNotificationIconForAndroid(
 			imagePath,
 			assetsgen.AndroidNotificationIconOptions{

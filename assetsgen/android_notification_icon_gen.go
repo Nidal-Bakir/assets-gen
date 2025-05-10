@@ -74,7 +74,7 @@ func GenerateNotificationIconForAndroid(imagePath string, option AndroidNotifica
 		If(option.TrimWhiteSpace, logoImage.TrimWhiteSpace).
 		If(option.AlphaThreshold >= 0, func() *imageInfo { return logoImage.RemoveAlphaOnThreshold(option.AlphaThreshold) }).
 		ConvertNoneOpaqueToColor(color.RGBA{R: 255, G: 255, B: 255, A: 255}).
-		SquareImageWithEmptyPixels().
+		SquareImageWithEmptyPixels(0).
 		SplitPerAsset(androidNotificationIconDpis(string(option.FolderName))).
 		ResizeForAssets().
 		SaveWithCustomName(option.OutputFileName)
@@ -99,10 +99,6 @@ func (a androidNotificationIconDpiAsset) Name() string {
 
 func (a androidNotificationIconDpiAsset) CalcSize(_, _ int) (int, int) {
 	return a.width, a.height
-}
-
-func (a androidNotificationIconDpiAsset) CalcPadding(_, _ int) int {
-	return 0
 }
 
 func (a androidNotificationIconDpiAsset) DirName() string {

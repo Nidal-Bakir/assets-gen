@@ -107,10 +107,6 @@ func (a androidScreenDpiAsset) CalcSize(_, _ int) (int, int) {
 	return w, h
 }
 
-func (a androidScreenDpiAsset) CalcPadding(_, _ int) int {
-	return 0
-}
-
 func (a androidScreenDpiAsset) DirName() string {
 	return fmt.Sprint(a.dirName, "-", a.dpiName)
 }

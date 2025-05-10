@@ -30,6 +30,10 @@ type imageInfo struct {
 	rootDir           *os.Root
 }
 
+func (ii imageInfo) IsValid() bool {
+	return ii.img != nil
+}
+
 type imageInfoSlice []imageInfo
 
 func (s *imageInfoSlice) ForEach(fn func(imageInfo) imageInfo) *imageInfoSlice {
@@ -47,10 +51,10 @@ func (s *imageInfoSlice) ResizeForAssets() *imageInfoSlice {
 	)
 }
 
-func (s *imageInfoSlice) PadForAsset() *imageInfoSlice {
+func (s *imageInfoSlice) CenterCanvasForAssets() *imageInfoSlice {
 	return s.ForEach(
 		func(imgInfo imageInfo) imageInfo {
-			return *imgInfo.PadForAsset()
+			return *imgInfo.CenterCanvaseForAsset()
 		},
 	)
 }
@@ -145,7 +149,15 @@ func (imgInfo *imageInfo) ResizeSquare(x int) *imageInfo {
 	return imgInfo.Resize(x, x)
 }
 
+func (imgInfo *imageInfo) ResizeSquareUseingResampleFilter(x int, resampleFilter transform.ResampleFilter) *imageInfo {
+	return imgInfo.ResizeUseingResampleFilter(x, x, resampleFilter)
+}
+
 func (imgInfo *imageInfo) Resize(w, h int) *imageInfo {
+	return imgInfo.ResizeUseingResampleFilter(w, h, transform.Lanczos)
+}
+
+func (imgInfo *imageInfo) ResizeUseingResampleFilter(w, h int, resampleFilter transform.ResampleFilter) *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	imgW := imgBounds.Dx()
 	imgH := imgBounds.Dy()
@@ -153,11 +165,11 @@ func (imgInfo *imageInfo) Resize(w, h int) *imageInfo {
 		return imgInfo
 	}
 
-	imgInfo.img = transform.Resize(imgInfo.img, w, h, transform.Linear)
+	imgInfo.img = transform.Resize(imgInfo.img, w, h, resampleFilter)
 	return imgInfo
 }
 
-func (imgInfo *imageInfo) SquareImageWithEmptyPixels() *imageInfo {
+func (imgInfo *imageInfo) SquareImageWithEmptyPixels(pading int) *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w := imgBounds.Dx()
 	h := imgBounds.Dy()
@@ -173,7 +185,7 @@ func (imgInfo *imageInfo) SquareImageWithEmptyPixels() *imageInfo {
 		padY = (w - h) / 2
 	}
 
-	imgInfo.img = clone.Pad(imgInfo.img, padX, padY, clone.NoFill)
+	imgInfo.img = clone.Pad(imgInfo.img, padX+pading, padY+pading, clone.NoFill)
 	return imgInfo
 }
 
@@ -225,9 +237,6 @@ func (imgInfo *imageInfo) UpdatePixels(updater func(x, y int, c color.Color) col
 }
 
 func (imgInfo *imageInfo) ClipRRect(percentRadius float64) *imageInfo {
-	if percentRadius == 0 {
-		return imgInfo
-	}
 	if percentRadius == 1 {
 		return imgInfo.ClipToCircle()
 	}
@@ -319,10 +328,10 @@ func (imgInfo *imageInfo) ResizeForAsset() *imageInfo {
 	return imgInfo.Resize(w, h)
 }
 
-func (imgInfo *imageInfo) PadForAsset() *imageInfo {
+func (imgInfo *imageInfo) CenterCanvaseForAsset() *imageInfo {
 	imgBounds := imgInfo.img.Bounds()
 	w, h := imgInfo.asset.CalcSize(imgBounds.Dx(), imgBounds.Dy())
-	return imgInfo.Padding(imgInfo.asset.CalcPadding(w, h))
+	return imgInfo.CenterInCanvas(w, h)
 }
 
 func (imgInfo imageInfo) Save() error {
@@ -353,6 +362,10 @@ func (imgInfo imageInfo) SaveWithCustomName(customImageName string) error {
 	}
 
 	return nil
+}
+
+func (imgInfo *imageInfo) SoldiColor(newColor color.Color) *imageInfo {
+	return imgInfo.ConvertColors(func(_ color.Color) color.Color { return newColor })
 }
 
 func (imgInfo *imageInfo) LinearGradient(colorsTable GradientTable, degree int) *imageInfo {
@@ -625,4 +638,19 @@ func (imgInfo *imageInfo) IfElse(condition bool, tureAction func() *imageInfo, f
 		return tureAction()
 	}
 	return falseAction()
+}
+
+func (imgInfo *imageInfo) CenterInCanvas(canvasW, canvasH int) *imageInfo {
+	imgBounds := imgInfo.img.Bounds()
+	w := imgBounds.Dx()
+	h := imgBounds.Dy()
+
+	cx := w / 2
+	cy := h / 2
+
+	dst := image.NewRGBA(image.Rect(0, 0, canvasW, canvasH))
+	draw.Draw(dst, dst.Rect, imgInfo.img, image.Point{-canvasW/2 + cx, -canvasH/2 + cy}, draw.Src)
+
+	imgInfo.img = dst
+	return imgInfo
 }

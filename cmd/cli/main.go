@@ -16,7 +16,6 @@ func main() {
 
 	cmd := &cli.Command{
 		Usage: "A CLI that will help you generate app icons and images for various platforms",
-		EnableShellCompletion: true,
 		Commands: []*cli.Command{
 			cmd.AndroidAppIcon(),
 			cmd.AndroidNotificationIcon(),

@@ -29,7 +29,6 @@ const (
 type asset interface {
 	Name() string
 	CalcSize(w, h int) (int, int)
-	CalcPadding(w, h int) int
 	DirName() string
 }
 
@@ -95,10 +94,7 @@ type solidColorBackground struct {
 }
 
 func (s solidColorBackground) generateImgInfo(logo imageInfo) (imageInfo, error) {
-	bgImage := logo.Copy()
-	solidColorGradient := GradientTable{{Col: s.color, Pos: 1.0}}
-	bgImage.LinearGradient(solidColorGradient, 0)
-	return *bgImage, nil
+	return *logo.Copy().SoldiColor(s.color), nil
 }
 
 func NewSolidColorBackground(c colorful.Color) BackgroundIcon {

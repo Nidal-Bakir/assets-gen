@@ -59,27 +59,22 @@ func androidAdaptiveAppIconLogoDpisV26(androidFolderName string) []asset {
 		androidAppIconDpiAsset{
 			dpiName: "mdpi",
 			size:    66,
-			padding: 24,
 		},
 		androidAppIconDpiAsset{
 			dpiName: "hdpi",
 			size:    99,
-			padding: 36,
 		},
 		androidAppIconDpiAsset{
 			dpiName: "xhdpi",
 			size:    132,
-			padding: 48,
 		},
 		androidAppIconDpiAsset{
 			dpiName: "xxhdpi",
 			size:    198,
-			padding: 72,
 		},
 		androidAppIconDpiAsset{
 			dpiName: "xxxhdpi",
 			size:    264,
-			padding: 96,
 		},
 	}
 	for i, v := range dpis {
@@ -90,7 +85,44 @@ func androidAdaptiveAppIconLogoDpisV26(androidFolderName string) []asset {
 	return dpis
 }
 
-func androidAppIconDpisLegacy(androidFolderName string) []asset {
+func androidAppIconDpisLegacyLogo(androidFolderName string) []asset {
+	// MDPI    - 48px
+	// HDPI    - 72px
+	// XHDPI   - 96px
+	// XXHDPI  - 144px
+	// XXXHDPI - 192px
+	var dpis = []asset{
+		androidAppIconDpiAsset{
+			dpiName: "mdpi",
+			size:    48 - 4,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "hdpi",
+			size:    72 - 6,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xhdpi",
+			size:    96 - 8,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xxhdpi",
+			size:    144 - 12,
+		},
+		androidAppIconDpiAsset{
+			dpiName: "xxxhdpi",
+			size:    192 - 24,
+		},
+	}
+
+	for i, v := range dpis {
+		dpi := v.(androidAppIconDpiAsset)
+		dpi.dirName = fmt.Sprint(dpi.dirName, androidFolderName)
+		dpis[i] = dpi
+	}
+	return dpis
+}
+
+func androidAppIconDpisLegacyLayer(androidFolderName string) []asset {
 	// MDPI    - 48px
 	// HDPI    - 72px
 	// XHDPI   - 96px
@@ -100,27 +132,22 @@ func androidAppIconDpisLegacy(androidFolderName string) []asset {
 		androidAppIconDpiAsset{
 			dpiName: "mdpi",
 			size:    48,
-			padding: 4,
 		},
 		androidAppIconDpiAsset{
 			dpiName: "hdpi",
 			size:    72,
-			padding: 6,
 		},
 		androidAppIconDpiAsset{
 			dpiName: "xhdpi",
 			size:    96,
-			padding: 8,
 		},
 		androidAppIconDpiAsset{
 			dpiName: "xxhdpi",
 			size:    144,
-			padding: 12,
 		},
 		androidAppIconDpiAsset{
 			dpiName: "xxxhdpi",
 			size:    192,
-			padding: 24,
 		},
 	}
 
@@ -136,7 +163,6 @@ type androidAppIconDpiAsset struct {
 	dpiName string
 	dirName string
 	size    int
-	padding int
 }
 
 func (a androidAppIconDpiAsset) Name() string {
@@ -145,10 +171,6 @@ func (a androidAppIconDpiAsset) Name() string {
 
 func (a androidAppIconDpiAsset) CalcSize(_, _ int) (int, int) {
 	return a.size, a.size
-}
-
-func (a androidAppIconDpiAsset) CalcPadding(_, _ int) int {
-	return a.padding
 }
 
 func (a androidAppIconDpiAsset) DirName() string {
@@ -190,16 +212,17 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 
 	logoImage.
 		If(option.TrimWhiteSpace, logoImage.TrimWhiteSpace).
-		SquareImageWithEmptyPixels().
-		ResizeSquare(MAX_DPI_SIZE_FOR_ANDROID_APP_ICON). // for performance optimization
-		Padding(pad).
+		SquareImageWithEmptyPixels(pad).
 		ResizeSquare(MAX_DPI_SIZE_FOR_ANDROID_APP_ICON). // for performance optimization
 		If(option.AlphaThreshold >= 0, func() *imageInfo { return logoImage.RemoveAlphaOnThreshold(option.AlphaThreshold) }).
 		If(option.MaskColor != nil, func() *imageInfo { return logoImage.ConvertNoneOpaqueToColor(*option.MaskColor) })
 
-	bgImage, err := option.BgIcon.generateImgInfo(logoImage)
-	if err != nil {
-		return err
+	var bgImage imageInfo
+	if _, ok := option.BgIcon.(solidColorBackground); !ok {
+		bgImage, err = option.BgIcon.generateImgInfo(logoImage)
+		if err != nil {
+			return err
+		}
 	}
 
 	w := sync.WaitGroup{}
@@ -210,21 +233,37 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 
 	go func() {
 		defer w.Done()
+
+		if !bgImage.IsValid() {
+			bgImage, legacyAppIconError = option.BgIcon.generateImgInfo(logoImage)
+			if legacyAppIconError != nil {
+				return
+			}
+		}
+
 		legacyAppIconError = generateLegacyAppIcon(
 			logoImage,
 			bgImage,
 			option.RoundedCornerPercentRadius,
 			option.AlphaThreshold,
-			androidAppIconDpisLegacy(string(option.FolderName)),
+			androidAppIconDpisLegacyLogo(string(option.FolderName)),
+			androidAppIconDpisLegacyLayer(string(option.FolderName)),
 			option.OutputFileName,
 		)
 	}()
 
 	go func() {
 		defer w.Done()
+
+		var solidColor *colorful.Color
+		if s, ok := option.BgIcon.(solidColorBackground); ok {
+			solidColor = &s.color
+		}
+
 		adaptiveAppIconError = generateAdaptiveAppIcon(
 			logoImage,
 			bgImage,
+			solidColor,
 			androidAdaptiveAppIconLayerDpisV26(string(option.FolderName)),
 			androidAdaptiveAppIconLogoDpisV26(string(option.FolderName)),
 			option.OutputFileName,
@@ -243,14 +282,22 @@ func GenerateAppIconForAndroid(imagePath string, option AndroidAppIconOptions) e
 	return nil
 }
 
-func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCornerPercentRadius float64, AlphaThreshold float64, androidAppIconDpisLegacy []asset, outputFileName string) error {
+func generateLegacyAppIcon(
+	logoImage imageInfo,
+	bgImage imageInfo,
+	roundedCornerPercentRadius float64,
+	AlphaThreshold float64,
+	androidAppIconDpisLegacyLogo []asset,
+	androidAppIconDpisLegacyLayer []asset,
+	outputFileName string,
+) error {
 	err := bgImage.
 		StackWithNoAlpha(AlphaThreshold, logoImage).
-		ClipRRect(roundedCornerPercentRadius).
-		SplitPerAsset(androidAppIconDpisLegacy).
+		If(roundedCornerPercentRadius > 0, func() *imageInfo { return bgImage.ClipRRect(roundedCornerPercentRadius) }).
+		SplitPerAsset(androidAppIconDpisLegacyLogo).
 		ResizeForAssets().
-		PadForAsset().
-		ResizeForAssets().
+		SetAssets(androidAppIconDpisLegacyLayer).
+		CenterCanvasForAssets().
 		SaveWithCustomName(outputFileName)
 
 	if err != nil {
@@ -260,8 +307,8 @@ func generateLegacyAppIcon(logoImage imageInfo, bgImage imageInfo, roundedCorner
 	return nil
 }
 
-func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdaptiveAppIconLayerDpisV26 []asset, androidAdaptiveAppIconLogoDpisV26 []asset, outputFileName string) error {
-	err := generateIcLauncherXml(logoImage, outputFileName)
+func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, solidColor *colorful.Color, androidAdaptiveAppIconLayerDpisV26 []asset, androidAdaptiveAppIconLogoDpisV26 []asset, outputFileName string) error {
+	err := generateIcLauncherXml(logoImage, outputFileName, solidColor)
 	if err != nil {
 		return err
 	}
@@ -269,14 +316,12 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 	logos := logoImage.
 		SplitPerAsset(androidAdaptiveAppIconLogoDpisV26).
 		ResizeForAssets().
-		PadForAsset().
 		SetAssets(androidAdaptiveAppIconLayerDpisV26).
-		ResizeForAssets()
+		CenterCanvasForAssets()
 
 	shouldUseAssetName := len(outputFileName) == 0
 	foregroundName := fmt.Sprint(outputFileName, "_foreground")
 	monochromeName := fmt.Sprint(outputFileName, "_monochrome")
-	backgroundName := fmt.Sprint(outputFileName, "_background")
 
 	for _, logo := range *logos {
 		if shouldUseAssetName {
@@ -295,24 +340,27 @@ func generateAdaptiveAppIcon(logoImage imageInfo, bgImage imageInfo, androidAdap
 		}
 	}
 
-	bgs := bgImage.
-		SplitPerAsset(androidAdaptiveAppIconLayerDpisV26).
-		ResizeForAssets()
+	if bgImage.IsValid() {
+		bgs := bgImage.
+			SplitPerAsset(androidAdaptiveAppIconLayerDpisV26).
+			ResizeForAssets()
 
-	for _, bg := range *bgs {
-		if shouldUseAssetName {
-			backgroundName = fmt.Sprint(bg.imgNameWithoutExt, "_background")
-		}
-		err := bg.SaveWithCustomName(backgroundName)
-		if err != nil {
-			return err
+		backgroundName := fmt.Sprint(outputFileName, "_background")
+		for _, bg := range *bgs {
+			if shouldUseAssetName {
+				backgroundName = fmt.Sprint(bg.imgNameWithoutExt, "_background")
+			}
+			err := bg.SaveWithCustomName(backgroundName)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func generateIcLauncherXml(logoImage imageInfo, outputFileName string) error {
+func generateIcLauncherXml(logoImage imageInfo, outputFileName string, solidColor *colorful.Color) error {
 	sb := strings.Builder{}
 
 	sb.WriteString(`<?xml version="1.0" encoding="utf-8" ?>`)
@@ -321,13 +369,17 @@ func generateIcLauncherXml(logoImage imageInfo, outputFileName string) error {
 	sb.WriteString(`<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">`)
 	sb.WriteRune('\n')
 
-	sb.WriteString(fmt.Sprint(`  <background android:drawable="@mipmap/`, outputFileName, `_background" />`))
+	if solidColor == nil {
+		sb.WriteString(fmt.Sprint(`    <background android:drawable="@mipmap/`, outputFileName, `_background" />`))
+	} else {
+		sb.WriteString(fmt.Sprint(`    <background android:drawable="@color/`, outputFileName, `_background" />`))
+	}
 	sb.WriteRune('\n')
 
-	sb.WriteString(fmt.Sprint(`  <foreground android:drawable="@mipmap/`, outputFileName, `_foreground" />`))
+	sb.WriteString(fmt.Sprint(`    <foreground android:drawable="@mipmap/`, outputFileName, `_foreground" />`))
 	sb.WriteRune('\n')
 
-	sb.WriteString(fmt.Sprint(`  <monochrome android:drawable="@mipmap/`, outputFileName, `_monochrome" />`))
+	sb.WriteString(fmt.Sprint(`    <monochrome android:drawable="@mipmap/`, outputFileName, `_monochrome" />`))
 	sb.WriteRune('\n')
 
 	sb.WriteString(`</adaptive-icon>`)
@@ -335,18 +387,61 @@ func generateIcLauncherXml(logoImage imageInfo, outputFileName string) error {
 
 	ic_launcher_xml := sb.String()
 
-	dir := filepath.Join(logoImage.saveDirPath, "anydpi-v26")
+	dir := filepath.Join(logoImage.saveDirPath, "mipmap-anydpi-v26")
 	err := logoImage.rootDir.Mkdir(dir, os.ModePerm)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
 
-	file, err := logoImage.rootDir.Create(filepath.Join(dir, "ic_launcher.xml"))
+	file, err := logoImage.rootDir.Create(filepath.Join(dir, fmt.Sprint(outputFileName, ".xml")))
 	if err != nil {
 		return err
 	}
 
 	_, err = file.WriteString(ic_launcher_xml)
+	if err != nil {
+		return err
+	}
+
+	if solidColor != nil {
+		err = generateIcBackgroundSolidColorXmlValueColorFile(logoImage, outputFileName, *solidColor)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func generateIcBackgroundSolidColorXmlValueColorFile(logoImage imageInfo, outputFileName string, solidColor colorful.Color) error {
+	sb := strings.Builder{}
+
+	sb.WriteString(`<?xml version="1.0" encoding="utf-8" ?>`)
+	sb.WriteRune('\n')
+
+	sb.WriteString(`<resources>`)
+	sb.WriteRune('\n')
+
+	sb.WriteString(fmt.Sprint(`    <color name="`, outputFileName, `_background">`, solidColor.Hex(), `</color>`))
+	sb.WriteRune('\n')
+
+	sb.WriteString(`</resources>`)
+	sb.WriteRune('\n')
+
+	ic_launcher_background_xml := sb.String()
+
+	dir := filepath.Join(logoImage.saveDirPath, "values")
+	err := logoImage.rootDir.Mkdir(dir, os.ModePerm)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	file, err := logoImage.rootDir.Create(filepath.Join(dir, fmt.Sprint(outputFileName, "_background.xml")))
+	if err != nil {
+		return err
+	}
+
+	_, err = file.WriteString(ic_launcher_background_xml)
 	if err != nil {
 		return err
 	}

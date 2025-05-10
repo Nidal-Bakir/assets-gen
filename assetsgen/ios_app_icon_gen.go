@@ -7,8 +7,6 @@ import (
 	"github.com/lucasb-eyer/go-colorful"
 )
 
-const MAX_DPI_SIZE_FOR_IOS_APP_ICON = 1024
-
 var iosAppIconDpis = []asset{
 	iosAppIconDpiAsset{
 		Filename: "AppIcon@2x",
@@ -155,7 +153,7 @@ var iosAppIconDpis = []asset{
 		Idiom:    "ios-marketing",
 		Scale:    "1x",
 		SizeName: "1024x1024",
-		Size:     MAX_DPI_SIZE_FOR_IOS_APP_ICON,
+		Size:     1024,
 	},
 }
 
@@ -173,10 +171,6 @@ func (a iosAppIconDpiAsset) Name() string {
 
 func (a iosAppIconDpiAsset) CalcSize(_, _ int) (int, int) {
 	return a.Size, a.Size
-}
-
-func (a iosAppIconDpiAsset) CalcPadding(_, _ int) int {
-	return 0
 }
 
 func (a iosAppIconDpiAsset) DirName() string {
@@ -237,10 +231,8 @@ func genLogoImageForIos(imagePath string, option IosAppIconOptions) (imageInfo, 
 
 	logoImage.
 		If(option.TrimWhiteSpace, logoImage.TrimWhiteSpace).
-		SquareImageWithEmptyPixels().
-		ResizeSquare(MAX_DPI_SIZE_FOR_IOS_APP_ICON). // for performance optimization
-		Padding(pad).
-		ResizeSquare(MAX_DPI_SIZE_FOR_IOS_APP_ICON). // for performance optimization
+		SquareImageWithEmptyPixels(pad).
+		// Padding(pad).
 		If(option.MaskColor != nil, func() *imageInfo { return logoImage.ConvertNoneOpaqueToColor(*option.MaskColor) })
 
 	return logoImage, nil

@@ -111,7 +111,7 @@ func cornerRadiusFlagFn(roundedCornerRadius *float64) *cli.FloatFlag {
 		Aliases:     []string{"r"},
 		Usage:       "Between [0..1] as percentage of the Radius. For example 1 would make the a full circle clip of the image, and 0 will do nothing, 0.5 will make rounded corners",
 		Destination: roundedCornerRadius,
-		Value:       0.2,
+		Value:       1,
 		Validator: func(i float64) error {
 			if i < 0 || i > 1 {
 				return ErrInvalidValueRange
