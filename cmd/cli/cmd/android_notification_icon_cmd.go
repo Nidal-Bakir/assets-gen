@@ -77,5 +77,9 @@ func applyAndroidNotificationIcon(outputName string) error {
 	if err != nil {
 		return err
 	}
+	err = deleteAssetsGenOutDir()
+	if err != nil {
+		return err
+	}
 	return nil
 }

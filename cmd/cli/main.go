@@ -22,6 +22,7 @@ func main() {
 			cmd.AndroidAssetGen(),
 			cmd.IosAppIcon(),
 			cmd.AndroidGooglePlayLogo(),
+			cmd.GenerateAll(),
 		},
 	}
 

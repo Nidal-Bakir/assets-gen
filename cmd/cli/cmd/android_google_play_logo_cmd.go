@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 
 	"github.com/Nidal-Bakir/assets-gen/assetsgen"
@@ -103,6 +102,18 @@ examples:
 }
 
 func applyAndroidPlayStoreLogo() error {
+	err := moveAndroidPlayStoreLogo()
+	if err != nil {
+		return err
+	}
+	err = deleteAssetsGenOutDir()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func moveAndroidPlayStoreLogo() error {
 	adroidMainRootDir, err := getAndroidMainDirAsRoot()
 	if err != nil {
 		return err
@@ -118,11 +129,6 @@ func applyAndroidPlayStoreLogo() error {
 	dst := filepath.Join(adroidMainRootDir.Name())
 
 	err = moveFilesR(src, dst)
-	if err != nil {
-		return err
-	}
-
-	err = os.RemoveAll(assetsOutRootDir.Name())
 	if err != nil {
 		return err
 	}

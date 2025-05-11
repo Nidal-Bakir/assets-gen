@@ -474,10 +474,18 @@ func moveResAndroidOutFiles() error {
 		return err
 	}
 
+	return nil
+}
+
+func deleteAssetsGenOutDir() error {
+	assetsOutRootDir, err := assetsgen.GetRootDir()
+	if err != nil {
+		return err
+	}
+	defer assetsOutRootDir.Close()
 	err = os.RemoveAll(assetsOutRootDir.Name())
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

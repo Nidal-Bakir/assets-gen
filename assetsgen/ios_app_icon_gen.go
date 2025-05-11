@@ -279,7 +279,7 @@ func generateContentsJson(logoImage *imageInfo, dpis []asset) error {
 	out := output{
 		Images: dpisWithFileEx,
 		Info: GenInfo{
-			Author:  "assets-gen@Nidal-Bakir",
+			Author:  "https://github.com/Nidal-Bakir/assets-gen",
 			Version: 1,
 		},
 	}

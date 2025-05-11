@@ -102,6 +102,10 @@ func applyIosAppIcon() error {
 	if err != nil {
 		return err
 	}
+	err = deleteAssetsGenOutDir()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -125,11 +129,6 @@ func moveIosOutFiles() error {
 	}
 
 	err = moveFilesR(src, dst)
-	if err != nil {
-		return err
-	}
-
-	err = os.RemoveAll(assetsOutRootDir.Name())
 	if err != nil {
 		return err
 	}
