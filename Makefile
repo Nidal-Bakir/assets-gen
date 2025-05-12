@@ -1,8 +1,10 @@
 .DEFAULT_GOAL := build
 
+.PHONY: build test clean
+
 build:
 	@echo "Building..."
-	@go build -o main cmd/cli/main.go
+	@go build -o build/assets-gen cmd/cli/main.go
 
 run:
 	@go run cmd/cli/main.go
@@ -22,6 +24,6 @@ fmt:
 
 clean:
 	@echo "Cleaning..."
-	@rm -f main
+	@rm -rf build/
 	@rm -rf assets_gen_out/
 	@echo "Done"
