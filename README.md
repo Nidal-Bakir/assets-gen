@@ -47,7 +47,7 @@ cd build
 ./assetsgen --help
 ```
 
-Ensure your PATH includes the build output (`./build/assets-gen`) or rename the binary accordingly.
+Ensure your PATH includes the build output (`./build/assetsgen`) or rename the binary accordingly.
 
 ---
 
