@@ -163,7 +163,7 @@ assets-gen agpl \
 
 ### 5. iOS App Icon (`iai`)
 
-Export all required iOS app-icon sizes into your Xcode `Assets.xcassets`.
+Export all required iOS app-icon sizes into your Xcode `AppIcon.appiconset`.
 
 ```bash
 # help:
