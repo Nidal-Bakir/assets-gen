@@ -69,9 +69,7 @@ assets-gen android-app-icon --help
 assets-gen android-app-icon ./ic_launcher.png
 # alias
 assets-gen aai ./ic_launcher.png
-````
 
-```bash
 # solid-color BG:
 assets-gen aai --color "#3498db" ./ic_launcher.png
 
