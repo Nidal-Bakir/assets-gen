@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "./go.mod"
+
+      - name: Build binaries
+        run: |
+          echo "Building Linux binary..."
+          GOOS=linux GOARCH=amd64 go build -o assets-gen-linux cmd/cli/main.go
+
+          echo "Building Windows binary..."
+          GOOS=windows GOARCH=amd64 go build -o assets-gen-windows.exe cmd/cli/main.go
+
+          echo "Building macOS binary..."
+          GOOS=darwin GOARCH=amd64 go build -o assets-gen-macos cmd/cli/main.go
+
+      - name: Create GitHub Release & upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            assets-gen-linux
+            assets-gen-windows.exe
+            assets-gen-macos
