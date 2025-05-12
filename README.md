@@ -61,7 +61,7 @@ Run `assets-gen --help` (or any subcommand `--help`) for a full list of flags an
 
 Generate launcher icons in all mipmap-density folders.
 
-````bash
+```bash
 # help:
 assets-gen android-app-icon --help
 
