@@ -55,7 +55,7 @@ Ensure your PATH includes the build output (`./build/assetsgen`) or rename the b
 
 ## 🛠 Usage
 
-Run `assets-gen --help` (or any subcommand `--help`) for a full list of flags and examples. Below are the main commands:
+Run `assetsgen --help` (or any subcommand `--help`) for a full list of flags and examples. Below are the main commands:
 
 ---
 
@@ -65,18 +65,18 @@ Generate launcher icons in all mipmap-density folders.
 
 ```bash
 # help:
-assets-gen android-app-icon --help
+assetsgen android-app-icon --help
 
 # minimal: just supply a source PNG
-assets-gen android-app-icon ./ic_launcher.png
+assetsgen android-app-icon ./ic_launcher.png
 # alias
-assets-gen aai ./ic_launcher.png
+assetsgen aai ./ic_launcher.png
 
 # solid-color BG:
-assets-gen aai --color "#3498db" ./ic_launcher.png
+assetsgen aai --color "#3498db" ./ic_launcher.png
 
 # linear-gradient BG with stops & degree:
-assets-gen aai \
+assetsgen aai \
   --bg linear-gradient \
   --colors "#FF0000,#00FF00,#0000FF" \
   --stops "0.0,0.5,1.0" \
@@ -84,13 +84,13 @@ assets-gen aai \
   ./ic_launcher.png
 
 # image as a background:
-assets-gen aai \
+assetsgen aai \
   --bg image \
   --bg-path ./bg_image.png \
   ./ic_launcher.png
 
 # trim whitespace, add padding, custom output & apply directly:
-assets-gen aai --trim --padding 0.1 --corner-radius 0.5 -o "app_icon" --apply ./ic_launcher.png
+assetsgen aai --trim --padding 0.1 --corner-radius 0.5 -o "app_icon" --apply ./ic_launcher.png
 ```
 
 ---
@@ -101,15 +101,15 @@ Produce notification icons (ic_stat\_) across all densities.
 
 ```bash
 # help:
-assets-gen android-notification-icon --help
+assetsgen android-notification-icon --help
 
 # basic:
-assets-gen android-notification-icon ./notif.png
+assetsgen android-notification-icon ./notif.png
 # alias
-assets-gen ani ./notif.png
+assetsgen ani ./notif.png
 
 # with trim, custom name, and apply:
-assets-gen ani --trim -o "ic_stat_notification" --apply ./notif.png
+assetsgen ani --trim -o "ic_stat_notification" --apply ./notif.png
 ```
 
 ---
@@ -120,15 +120,15 @@ Generate drawable image assets (all DPIs) from a single source.
 
 ```bash
 # help:
-assets-gen android-asset-gen --help
+assetsgen android-asset-gen --help
 
 # generate into default `drawable-<dpi>` folders:
-assets-gen android-asset-gen ./image.png
+assetsgen android-asset-gen ./image.png
 # alias
-assets-gen aag ./image.png
+assetsgen aag ./image.png
 
 # trim whitespace, and apply:
-assets-gen aag --trim --apply ./image.png
+assetsgen aag --trim --apply ./image.png
 ```
 
 ---
@@ -139,15 +139,15 @@ Create a 512×512 Play Store logo with optional BG styling.
 
 ```bash
 # help:
-assets-gen android-google-play-logo --help
+assetsgen android-google-play-logo --help
 
 # basic:
-assets-gen android-google-play-logo ./playlogo.png
+assetsgen android-google-play-logo ./playlogo.png
 # alias
-assets-gen agpl ./playlogo.png
+assetsgen agpl ./playlogo.png
 
 # gradient background + trim + padding:
-assets-gen agpl \
+assetsgen agpl \
   --bg linear-gradient \
   --colors "#ffa500,#ff4500" \
   --stops "0.0,1.0" \
@@ -167,24 +167,24 @@ Export all required iOS app-icon sizes into your Xcode `AppIcon.appiconset`.
 
 ```bash
 # help:
-assets-gen ios-app-icon --help
+assetsgen ios-app-icon --help
 
 # basic:
-assets-gen ios-app-icon ./appicon.png
+assetsgen ios-app-icon ./appicon.png
 # alias
-assets-gen iai ./appicon.png
+assetsgen iai ./appicon.png
 
 # solid color bg + padding + trim:
-assets-gen iai --color "#8e44ad" --padding 0.1 --trim --apply ./appicon.png
+assetsgen iai --color "#8e44ad" --padding 0.1 --trim --apply ./appicon.png
 
 # image as a background:
-assets-gen iai \
+assetsgen iai \
   --bg image \
   --bg-path ./bg_image.png \
   ./appicon.png
 
 # radial-gradient BG with stops & degree:
-assets-gen iai \
+assetsgen iai \
   --bg radial-gradient \
   --colors "#FF0000,#00FF00,#0000FF" \
   --stops "0.0,0.5,1.0" \
@@ -200,13 +200,13 @@ Run **all** generation tasks in parallel using a single image. Useful in CI or b
 
 ```bash
 # help:
-assets-gen all --help
+assetsgen all --help
 
 # basic:
-assets-gen all ./master_image.png
+assetsgen all ./master_image.png
 
 # customize options (same flags as individual commands):
-assets-gen all \
+assetsgen all \
   --bg linear-gradient \
   --colors "#123456,#abcdef" \
   --stops "0.0,1.0" \
@@ -219,7 +219,7 @@ assets-gen all \
   ./master_image.png
 ```
 
-_(Use `assets-gen all --help` for full flag list.)_
+_(Use `assetsgen all --help` for full flag list.)_
 
 ---
 
