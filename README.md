@@ -1,5 +1,5 @@
 # assets-gen
-
+[![assets-gen](https://github.com/Nidal-Bakir/assets-gen/actions/workflows/go.yml/badge.svg)](https://github.com/Nidal-Bakir/assets-gen/actions/workflows/go.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Nidal-Bakir/assets-gen.svg)](https://pkg.go.dev/github.com/Nidal-Bakir/assets-gen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
