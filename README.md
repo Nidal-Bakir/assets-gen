@@ -30,7 +30,7 @@ A flexible **Go** CLI for generating Android & iOS app icons, Android notificati
 
 ```bash
 # via go (requires Go 1.18+)
-go install github.com/Nidal-Bakir/assets-gen/cmd/cli@latest
+go install github.com/Nidal-Bakir/assets-gen/cmd/assetsgen@latest
 ```
 
 ### released binary
