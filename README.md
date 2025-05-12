@@ -18,7 +18,7 @@ A flexible **Go** CLI for generating Android & iOS app icons, Android notificati
 - **Android Google Play Logo**
   🛒 Create 512×512 Play Store logos with backgrounds, padding, and trim options.
 - **iOS App Icon**
-  📱 Export all AppIcon sizes into your `Assets.xcassets`, with padding, and BG options.
+  📱 Export all AppIcon sizes into your `AppIcon.appiconset`, with padding, and BG options.
 - **Generate All (`all`)**
   🎉 Run all of the above tasks in parallel using a single source image.
 
