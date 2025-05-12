@@ -44,7 +44,7 @@ git clone https://github.com/Nidal-Bakir/assets-gen.git
 cd assets-gen
 make        # builds executable as `assets-gen`
 cd build
-./assets-gen --help
+./assetsgen --help
 ```
 
 Ensure your PATH includes the build output (`./build/assets-gen`) or rename the binary accordingly.

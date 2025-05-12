@@ -4,7 +4,7 @@
 
 build:
 	@echo "Building..."
-	@go build -o build/assets-gen cmd/assetsgen/main.go
+	@go build -o build/assetsgen cmd/assetsgen/main.go
 
 run:
 	@go run cmd/cli/main.go
