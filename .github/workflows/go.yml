@@ -20,7 +20,7 @@ jobs:
           go-version-file: "./go.mod"
 
       - name: Build
-        run: go build -o assets-gen cmd/cli/main.go
+        run: go build -o assets-gen cmd/assetsgen/main.go
 
       - name: vet
         run: go vet ./...

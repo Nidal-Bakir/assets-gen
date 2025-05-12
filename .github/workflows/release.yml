@@ -23,13 +23,13 @@ jobs:
       - name: Build binaries
         run: |
           echo "Building Linux binary..."
-          GOOS=linux GOARCH=amd64 go build -o assets-gen-linux cmd/cli/main.go
+          GOOS=linux GOARCH=amd64 go build -o assets-gen-linux cmd/assetsgen/main.go
 
           echo "Building Windows binary..."
-          GOOS=windows GOARCH=amd64 go build -o assets-gen-windows.exe cmd/cli/main.go
+          GOOS=windows GOARCH=amd64 go build -o assets-gen-windows.exe cmd/assetsgen/main.go
 
           echo "Building macOS binary..."
-          GOOS=darwin GOARCH=amd64 go build -o assets-gen-macos cmd/cli/main.go
+          GOOS=darwin GOARCH=amd64 go build -o assets-gen-macos cmd/assetsgen/main.go
 
       - name: Create GitHub Release & upload assets
         uses: softprops/action-gh-release@v2
