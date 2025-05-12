@@ -1,4 +1,5 @@
 # assets-gen
+
 [![assets-gen](https://github.com/Nidal-Bakir/assets-gen/actions/workflows/go.yml/badge.svg)](https://github.com/Nidal-Bakir/assets-gen/actions/workflows/go.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Nidal-Bakir/assets-gen.svg)](https://pkg.go.dev/github.com/Nidal-Bakir/assets-gen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -36,13 +37,14 @@ go install github.com/Nidal-Bakir/assets-gen/cmd/assetsgen@latest
 ### released binary
 
 You can download the released binary for your OS from the [releases](https://github.com/Nidal-Bakir/assets-gen/releases/latest) page.
+
 ### from source
 
 ```bash
 # or clone & build using Makefile
 git clone https://github.com/Nidal-Bakir/assets-gen.git
 cd assets-gen
-make        # builds executable as `assets-gen`
+make        # builds executable as `assetsgen`
 cd build
 ./assetsgen --help
 ```
