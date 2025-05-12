@@ -19,4 +19,4 @@ go.work.sum
 
 test_images/
 assets_gen_out/
-main
+build/
