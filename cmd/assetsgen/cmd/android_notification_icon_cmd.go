@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Nidal-Bakir/assets-gen/assetsgen"
 	"github.com/urfave/cli/v3"
@@ -38,7 +39,7 @@ func AndroidNotificationIcon() *cli.Command {
 		}
 
 		if apply {
-			err = applyAndroidNotificationIcon(outputName)
+			err = applyAndroidNotificationIcon(string(folderName), outputName)
 			if err != nil {
 				return err
 			}
@@ -72,7 +73,7 @@ examples:
 	}
 }
 
-func applyAndroidNotificationIcon(outputName string) error {
+func applyAndroidNotificationIcon(folderName, outputName string) error {
 	err := moveResAndroidOutFiles()
 	if err != nil {
 		return err
@@ -81,5 +82,15 @@ func applyAndroidNotificationIcon(outputName string) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("If You are using the Flutter framwork don't forget to add the following " +
+		"meta-data schema within the application component: 'android/app/src/main/AndroidManifest.xml'")
+	fmt.Println()
+	schema := `<meta-data
+  android:name="com.google.firebase.messaging.default_notification_icon"
+  android:resource="@%s/%s" />`
+	fmt.Printf(schema, folderName, outputName)
+	fmt.Println()
+
 	return nil
 }
